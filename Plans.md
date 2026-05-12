@@ -89,9 +89,9 @@
 - [x] **cc:DONE** B2: 検索トグル「古い/新しいカード優先」 (`preferAge` → `dir=asc/desc`)
 - [x] **cc:DONE** B3: トグル状態の localStorage 永続化 (`mtgImageEditor.preferences.v1`)
 
-### Phase C: 出力レイアウト調整 `cc:TODO`
+### Phase C: 出力レイアウト調整 `cc:DONE` — 2026-05-12
 
-- [ ] **cc:TODO** C1: 出力画像の整列オプション（左/中央/右、クリップボードボタンの右に 3 ボタン、デフォルト左）
+- [x] **cc:DONE** C1: 出力画像の整列オプション（左/中央/右、セグメント風 3 ボタン、デフォルト左、localStorage 永続化）
 
 ### Phase D: 画像自由選択モード `cc:TODO`
 

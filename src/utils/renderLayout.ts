@@ -1,5 +1,6 @@
 import type { Layout, LayoutItem } from '../types/card'
 import { groupRowItems } from '../state/layout'
+import type { OutputAlignment } from '../state/preferences'
 
 export type RenderOptions = {
   pixelRatio?: number
@@ -9,6 +10,7 @@ export type RenderOptions = {
   cardGap?: number
   overlayScale?: number
   overlayOffset?: number
+  alignment?: OutputAlignment
 }
 
 async function loadBitmap(url: string): Promise<ImageBitmap> {
@@ -56,6 +58,7 @@ export async function renderLayoutToCanvas(
     cardGap = 12,
     overlayScale = 0.6,
     overlayOffset = 8,
+    alignment = 'left',
   } = options
 
   const cardHeight = Math.round(cardWidth * cardHeightRatio)
@@ -106,7 +109,12 @@ export async function renderLayoutToCanvas(
 
   let y = 0
   for (const groups of renderRows) {
-    let x = 0
+    const rowWidth =
+      groups.length * cardWidth + Math.max(groups.length - 1, 0) * cardGap
+    const slack = Math.max(0, maxRowWidth - rowWidth)
+    const startX =
+      alignment === 'center' ? slack / 2 : alignment === 'right' ? slack : 0
+    let x = startX
     for (const group of groups) {
       const baseImg = imageMap.get(activeImageUrl(group.base))
       if (baseImg) {

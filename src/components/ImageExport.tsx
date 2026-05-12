@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { Layout } from '../types/card'
+import type { OutputAlignment } from '../state/preferences'
 import { canvasToBlob, renderLayoutToCanvas } from '../utils/renderLayout'
 
 type Props = {
   layout: Layout
+  alignment: OutputAlignment
+  onAlignmentChange: (alignment: OutputAlignment) => void
   disabled?: boolean
   onClearAll?: () => void
 }
@@ -14,7 +17,13 @@ type Status =
   | { kind: 'done'; message: string }
   | { kind: 'error'; message: string }
 
-export function ImageExport({ layout, disabled, onClearAll }: Props) {
+export function ImageExport({
+  layout,
+  alignment,
+  onAlignmentChange,
+  disabled,
+  onClearAll,
+}: Props) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
 
   useEffect(() => {
@@ -28,7 +37,7 @@ export function ImageExport({ layout, disabled, onClearAll }: Props) {
   const handleDownload = async () => {
     setStatus({ kind: 'working' })
     try {
-      const canvas = await renderLayoutToCanvas(layout)
+      const canvas = await renderLayoutToCanvas(layout, { alignment })
       const blob = await canvasToBlob(canvas)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -58,7 +67,7 @@ export function ImageExport({ layout, disabled, onClearAll }: Props) {
     }
     setStatus({ kind: 'working' })
     try {
-      const canvas = await renderLayoutToCanvas(layout)
+      const canvas = await renderLayoutToCanvas(layout, { alignment })
       const blob = await canvasToBlob(canvas)
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
       setStatus({ kind: 'done', message: '画像をコピーしました' })
@@ -82,6 +91,36 @@ export function ImageExport({ layout, disabled, onClearAll }: Props) {
         <button type="button" onClick={handleCopyImage} disabled={buttonDisabled}>
           画像をクリップボードへ
         </button>
+        <div
+          className="image-export-alignment"
+          role="group"
+          aria-label="出力画像の整列"
+        >
+          <button
+            type="button"
+            onClick={() => onAlignmentChange('left')}
+            aria-pressed={alignment === 'left'}
+            title="左揃え"
+          >
+            左
+          </button>
+          <button
+            type="button"
+            onClick={() => onAlignmentChange('center')}
+            aria-pressed={alignment === 'center'}
+            title="中央揃え"
+          >
+            中央
+          </button>
+          <button
+            type="button"
+            onClick={() => onAlignmentChange('right')}
+            aria-pressed={alignment === 'right'}
+            title="右揃え"
+          >
+            右
+          </button>
+        </div>
         {onClearAll && (
           <button
             type="button"

@@ -155,6 +155,35 @@
   cursor: not-allowed;
 }
 
+.image-export-alignment {
+  display: inline-flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.image-export-alignment button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 0 !important;
+}
+
+.image-export-alignment button:last-child {
+  border-right: none;
+}
+
+.image-export-alignment button[aria-pressed='true'] {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .image-export-clear {
   border-color: rgba(192, 57, 43, 0.5) !important;
   background: rgba(192, 57, 43, 0.1) !important;

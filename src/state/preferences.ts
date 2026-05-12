@@ -1,9 +1,11 @@
 export type PreferLanguage = 'ja' | 'en'
 export type PreferAge = 'oldest' | 'newest'
+export type OutputAlignment = 'left' | 'center' | 'right'
 
 export type Preferences = {
   preferLanguage: PreferLanguage
   preferAge: PreferAge
+  outputAlignment: OutputAlignment
 }
 
 export const PREFERENCES_STORAGE_KEY = 'mtgImageEditor.preferences.v1'
@@ -11,7 +13,14 @@ export const PREFERENCES_STORAGE_KEY = 'mtgImageEditor.preferences.v1'
 export const DEFAULT_PREFERENCES: Preferences = {
   preferLanguage: 'ja',
   preferAge: 'oldest',
+  outputAlignment: 'left',
 }
+
+const VALID_ALIGNMENTS: ReadonlySet<OutputAlignment> = new Set([
+  'left',
+  'center',
+  'right',
+])
 
 export function loadPreferences(): Preferences {
   try {
@@ -25,6 +34,11 @@ export function loadPreferences(): Preferences {
         v.preferLanguage === 'en' ? 'en' : DEFAULT_PREFERENCES.preferLanguage,
       preferAge:
         v.preferAge === 'newest' ? 'newest' : DEFAULT_PREFERENCES.preferAge,
+      outputAlignment:
+        typeof v.outputAlignment === 'string' &&
+        VALID_ALIGNMENTS.has(v.outputAlignment as OutputAlignment)
+          ? (v.outputAlignment as OutputAlignment)
+          : DEFAULT_PREFERENCES.outputAlignment,
     }
   } catch (error) {
     console.warn('Failed to load preferences from localStorage', error)

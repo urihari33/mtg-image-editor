@@ -365,6 +365,8 @@ function App() {
           />
           <ImageExport
             layout={layout}
+            alignment={preferences.outputAlignment}
+            onAlignmentChange={(a) => setPreference('outputAlignment', a)}
             disabled={!hasCards}
             onClearAll={handleClearAll}
           />

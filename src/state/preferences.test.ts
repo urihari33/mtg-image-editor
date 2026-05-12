@@ -17,11 +17,42 @@ describe('loadPreferences', () => {
   })
 
   it('round-trips through savePreferences', () => {
-    savePreferences({ preferLanguage: 'en', preferAge: 'newest' })
+    savePreferences({
+      preferLanguage: 'en',
+      preferAge: 'newest',
+      outputAlignment: 'right',
+    })
     expect(loadPreferences()).toEqual({
       preferLanguage: 'en',
       preferAge: 'newest',
+      outputAlignment: 'right',
     })
+  })
+
+  it('accepts valid outputAlignment from storage', () => {
+    localStorage.setItem(
+      PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        preferLanguage: 'ja',
+        preferAge: 'oldest',
+        outputAlignment: 'center',
+      }),
+    )
+    expect(loadPreferences().outputAlignment).toBe('center')
+  })
+
+  it('rejects unknown outputAlignment and falls back to default', () => {
+    localStorage.setItem(
+      PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        preferLanguage: 'ja',
+        preferAge: 'oldest',
+        outputAlignment: 'diagonal',
+      }),
+    )
+    expect(loadPreferences().outputAlignment).toBe(
+      DEFAULT_PREFERENCES.outputAlignment,
+    )
   })
 
   it('falls back to defaults on malformed JSON and logs a warning', () => {
@@ -48,7 +79,11 @@ describe('loadPreferences', () => {
 
 describe('clearPreferencesStorage', () => {
   it('removes the storage key', () => {
-    savePreferences({ preferLanguage: 'en', preferAge: 'newest' })
+    savePreferences({
+      preferLanguage: 'en',
+      preferAge: 'newest',
+      outputAlignment: 'right',
+    })
     expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).not.toBeNull()
     clearPreferencesStorage()
     expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).toBeNull()
