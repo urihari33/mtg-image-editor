@@ -1,7 +1,9 @@
 import type {
   CardEntry,
+  CardFace,
   CardSuggestion,
   ScryfallCard,
+  ScryfallCardFace,
   ScryfallCatalog,
   ScryfallList,
 } from '../types/card'
@@ -101,6 +103,32 @@ function pickImageUrl(card: ScryfallCard): string | undefined {
   return front?.image_uris?.normal
 }
 
+function toCardFace(face: ScryfallCardFace, isJa: boolean): CardFace | null {
+  const imageUrl = face.image_uris?.normal
+  if (!imageUrl) return null
+  const printed = face.printed_name
+  const japaneseName = isJa && printed && printed !== face.name ? printed : undefined
+  return {
+    englishName: face.name,
+    japaneseName,
+    displayName: japaneseName ?? face.name,
+    hasJapanese: !!japaneseName,
+    imageUrl,
+  }
+}
+
+function buildFaces(card: ScryfallCard): CardFace[] | undefined {
+  if (!card.card_faces || card.card_faces.length < 2) return undefined
+  const isJa = card.lang === 'ja'
+  const faces: CardFace[] = []
+  for (const f of card.card_faces) {
+    const built = toCardFace(f, isJa)
+    if (!built) return undefined
+    faces.push(built)
+  }
+  return faces
+}
+
 function toCardEntry(
   card: ScryfallCard,
   japaneseName: string | undefined,
@@ -108,16 +136,18 @@ function toCardEntry(
   const imageUrl = pickImageUrl(card)
   if (!imageUrl) return null
   const hasJapanese = card.lang === 'ja' || !!japaneseName
+  const faces = buildFaces(card)
   return {
     oracleId: card.oracle_id,
     scryfallId: card.id,
     englishName: card.name,
     japaneseName,
-    displayName: japaneseName ?? card.name,
+    displayName: japaneseName ?? faces?.[0]?.displayName ?? card.name,
     hasJapanese,
     imageUrl,
     setCode: card.set,
     releasedAt: card.released_at,
+    faces,
   }
 }
 

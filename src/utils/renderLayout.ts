@@ -1,4 +1,4 @@
-import type { Layout } from '../types/card'
+import type { Layout, LayoutItem } from '../types/card'
 import { groupRowItems } from '../state/layout'
 
 export type RenderOptions = {
@@ -14,14 +14,14 @@ export type RenderOptions = {
 async function loadBitmap(url: string): Promise<ImageBitmap> {
   // Append a cache buster so the browser doesn't reuse a response that the
   // display `<img>` cached without an Origin header. Scryfall's CDN returns
-  // `Vary: Origin`, which most browsers handle correctly but some still serve
-  // a stale non-CORS response from the cache.
+  // `Vary: Origin`, and the `?_cors=1` makes the cache key distinct from the
+  // display `<img>` request — so the browser HTTP cache can safely reuse this
+  // CORS-tagged response on subsequent exports.
   const sep = url.includes('?') ? '&' : '?'
   const corsUrl = `${url}${sep}_cors=1`
   const response = await fetch(corsUrl, {
     mode: 'cors',
     credentials: 'omit',
-    cache: 'no-store',
     referrerPolicy: 'no-referrer',
   })
   if (!response.ok) {
@@ -31,6 +31,17 @@ async function loadBitmap(url: string): Promise<ImageBitmap> {
   }
   const blob = await response.blob()
   return createImageBitmap(blob)
+}
+
+function activeImageUrl(item: LayoutItem): string {
+  if (
+    item.faceIndex !== undefined &&
+    item.card.faces &&
+    item.card.faces[item.faceIndex]
+  ) {
+    return item.card.faces[item.faceIndex].imageUrl
+  }
+  return item.card.imageUrl
 }
 
 export async function renderLayoutToCanvas(
@@ -75,8 +86,8 @@ export async function renderLayoutToCanvas(
   const urls = new Set<string>()
   for (const groups of renderRows) {
     for (const g of groups) {
-      urls.add(g.base.card.imageUrl)
-      for (const o of g.overlays) urls.add(o.card.imageUrl)
+      urls.add(activeImageUrl(g.base))
+      for (const o of g.overlays) urls.add(activeImageUrl(o))
     }
   }
   const imageMap = new Map<string, ImageBitmap>()
@@ -97,12 +108,12 @@ export async function renderLayoutToCanvas(
   for (const groups of renderRows) {
     let x = 0
     for (const group of groups) {
-      const baseImg = imageMap.get(group.base.card.imageUrl)
+      const baseImg = imageMap.get(activeImageUrl(group.base))
       if (baseImg) {
         ctx.drawImage(baseImg, x, y, cardWidth, cardHeight)
       }
       for (const ov of group.overlays) {
-        const img = imageMap.get(ov.card.imageUrl)
+        const img = imageMap.get(activeImageUrl(ov))
         if (img) {
           const ox = x + cardWidth - overlayW + overlayOffset
           const oy = y + cardHeight - overlayH + overlayOffset

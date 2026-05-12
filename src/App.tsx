@@ -32,6 +32,7 @@ import {
   createInitialLayout,
   finalizePlaceholder,
   findItem,
+  flipItem,
   moveItem,
   pruneEmptyRows,
   removeItemFromLayout,
@@ -85,6 +86,10 @@ function App() {
 
   const handleRemoveItem = useCallback((itemId: string) => {
     setLayout((prev) => pruneEmptyRows(removeItemFromLayout(prev, itemId)))
+  }, [])
+
+  const handleFlipItem = useCallback((itemId: string) => {
+    setLayout((prev) => flipItem(prev, itemId))
   }, [])
 
   const handleClearAll = useCallback(() => {
@@ -314,7 +319,11 @@ function App() {
               </p>
             )}
           </header>
-          <Canvas layout={layout} onRemoveItem={handleRemoveItem} />
+          <Canvas
+            layout={layout}
+            onRemoveItem={handleRemoveItem}
+            onFlipItem={handleFlipItem}
+          />
           <ImageExport
             layout={layout}
             disabled={!hasCards}

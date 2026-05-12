@@ -120,6 +120,22 @@ export function addNewEmptyRow(layout: Layout): Layout {
   return { rows: [...layout.rows, { id: makeId('row'), items: [] }] }
 }
 
+export function flipItem(layout: Layout, itemId: string): Layout {
+  return {
+    rows: layout.rows.map((row) => ({
+      ...row,
+      items: row.items.map((it) => {
+        if (it.id !== itemId) return it
+        const faces = it.card.faces
+        if (!faces || faces.length < 2) return it
+        const current = it.faceIndex ?? 0
+        const next = (current + 1) % faces.length
+        return { ...it, faceIndex: next }
+      }),
+    })),
+  }
+}
+
 export function addCardToRow(
   layout: Layout,
   card: CardEntry,

@@ -9,6 +9,7 @@ import {
   createInitialLayout,
   finalizePlaceholder,
   findItem,
+  flipItem,
   moveItem,
   pruneEmptyRows,
   removeItemFromLayout,
@@ -265,6 +266,46 @@ describe('finalizePlaceholder', () => {
     expect(renamed.card).toBe(card)
     expect(next.rows[0].items[0].id).toBe('a')
     expect(next.rows[0].items[2].id).toBe('b')
+  })
+})
+
+describe('flipItem', () => {
+  function makeDfcCard(): CardEntry {
+    return {
+      oracleId: 'dfc',
+      scryfallId: 'dfc-s',
+      englishName: 'A // B',
+      displayName: 'A',
+      hasJapanese: false,
+      imageUrl: 'https://example.com/a.jpg',
+      setCode: 'tst',
+      releasedAt: '2024-01-01',
+      faces: [
+        { englishName: 'A', displayName: 'A', hasJapanese: false, imageUrl: 'https://example.com/a.jpg' },
+        { englishName: 'B', displayName: 'B', hasJapanese: false, imageUrl: 'https://example.com/b.jpg' },
+      ],
+    }
+  }
+
+  it('toggles faceIndex 0 → 1 → 0', () => {
+    const layout: Layout = {
+      rows: [{ id: 'r1', items: [{ id: 'i1', card: makeDfcCard() }] }],
+    }
+    const after1 = flipItem(layout, 'i1')
+    expect(after1.rows[0].items[0].faceIndex).toBe(1)
+    const after2 = flipItem(after1, 'i1')
+    expect(after2.rows[0].items[0].faceIndex).toBe(0)
+  })
+
+  it('is a no-op for single-faced cards', () => {
+    const layout = buildLayout([{ id: 'r1', items: [item('a')] }])
+    const next = flipItem(layout, 'a')
+    expect(next.rows[0].items[0].faceIndex).toBeUndefined()
+  })
+
+  it('is a no-op when item id not found', () => {
+    const layout = buildLayout([{ id: 'r1', items: [item('a')] }])
+    expect(flipItem(layout, 'unknown')).toEqual(layout)
   })
 })
 

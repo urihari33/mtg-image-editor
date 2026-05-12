@@ -30,7 +30,6 @@ export function TextOutput({ layout }: Props) {
   return (
     <section className="text-output" aria-label="カード名テキスト出力">
       <div className="text-output-header">
-        <h2>カード名テキスト</h2>
         <button
           type="button"
           onClick={handleCopy}
@@ -39,6 +38,7 @@ export function TextOutput({ layout }: Props) {
         >
           {copied ? 'コピーしました' : 'コピー'}
         </button>
+        <h2>カード名テキスト</h2>
       </div>
       <pre className="text-output-body">
         {text || '(カードが追加されると表示されます)'}

@@ -48,6 +48,14 @@ export type CardSuggestion = {
   oracleId?: string
 }
 
+export type CardFace = {
+  englishName: string
+  japaneseName?: string
+  displayName: string
+  hasJapanese: boolean
+  imageUrl: string
+}
+
 export type CardEntry = {
   oracleId: string
   scryfallId: string
@@ -58,12 +66,14 @@ export type CardEntry = {
   imageUrl: string
   setCode: string
   releasedAt: string
+  faces?: CardFace[]
 }
 
 export type LayoutItem = {
   id: string
   card: CardEntry
   overlayOf?: string
+  faceIndex?: number
 }
 
 export type LayoutRow = {

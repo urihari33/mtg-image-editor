@@ -49,9 +49,11 @@ function OverlayDropZone({ baseId }: { baseId: string }) {
 function SortableBase({
   group,
   onRemoveItem,
+  onFlipItem,
 }: {
   group: ItemGroup
   onRemoveItem?: (id: string) => void
+  onFlipItem?: (id: string) => void
 }) {
   const hasOverlays = group.overlays.length > 0
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -73,9 +75,14 @@ function SortableBase({
       {...attributes}
       {...listeners}
     >
-      <CardView item={group.base} onRemove={onRemoveItem} />
+      <CardView item={group.base} onRemove={onRemoveItem} onFlip={onFlipItem} />
       {group.overlays.map((ov) => (
-        <DraggableOverlay key={ov.id} item={ov} onRemove={onRemoveItem} />
+        <DraggableOverlay
+          key={ov.id}
+          item={ov}
+          onRemove={onRemoveItem}
+          onFlip={onFlipItem}
+        />
       ))}
       <OverlayDropZone baseId={group.base.id} />
     </div>
@@ -85,9 +92,11 @@ function SortableBase({
 function DraggableOverlay({
   item,
   onRemove,
+  onFlip,
 }: {
   item: LayoutItem
   onRemove?: (id: string) => void
+  onFlip?: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -106,7 +115,7 @@ function DraggableOverlay({
       {...attributes}
       {...listeners}
     >
-      <CardView item={item} onRemove={onRemove} />
+      <CardView item={item} onRemove={onRemove} onFlip={onFlip} />
     </div>
   )
 }
@@ -163,10 +172,11 @@ function NewRowZone() {
 type Props = {
   layout: Layout
   onRemoveItem?: (itemId: string) => void
+  onFlipItem?: (itemId: string) => void
   ref?: Ref<HTMLDivElement>
 }
 
-export function Canvas({ layout, onRemoveItem, ref }: Props) {
+export function Canvas({ layout, onRemoveItem, onFlipItem, ref }: Props) {
   const totalItems = layout.rows.reduce((sum, row) => sum + row.items.length, 0)
   const isEmpty = totalItems === 0
 
@@ -197,6 +207,7 @@ export function Canvas({ layout, onRemoveItem, ref }: Props) {
                 key={group.base.id}
                 group={group}
                 onRemoveItem={onRemoveItem}
+                onFlipItem={onFlipItem}
               />
             ))}
           </DroppableRow>

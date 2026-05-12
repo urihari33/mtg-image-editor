@@ -75,6 +75,37 @@
 
 ---
 
+## 📅 2026-05-12 フィードバック対応（実装計画は `doc/implementation-plan-2026-05-12.md`）
+
+### Phase A: 小さい UX 調整 `cc:DONE` — 2026-05-12
+
+- [x] **cc:DONE** A1: テキスト出力のコピーボタンを左寄せ
+- [x] **cc:DONE** A2: 画像エクスポート軽量化（`cache: 'no-store'` → 既定、`_cors=1` cache buster 維持）
+- [x] **cc:DONE** A3: 両面カードの裏返しボタン（左上、DFC 限定、faceIndex で表↔裏切替）
+
+### Phase B: 検索 UI 強化 `cc:TODO`
+
+- [ ] **cc:TODO** B1: 検索トグル「JP優先 / EN優先」
+- [ ] **cc:TODO** B2: 検索トグル「古い / 新しい優先」
+- [ ] **cc:TODO** B3: トグル状態の localStorage 永続化
+
+### Phase C: 出力レイアウト調整 `cc:TODO`
+
+- [ ] **cc:TODO** C1: 出力画像の整列オプション（左/中央/右、クリップボードボタンの右に 3 ボタン、デフォルト左）
+
+### Phase D: 画像自由選択モード `cc:TODO`
+
+- [ ] **cc:TODO** D1: 自由選択モード ON/OFF トグル
+- [ ] **cc:TODO** D2: プリント一覧モーダル（`unique=prints&order=released&dir=asc`）
+- [ ] **cc:TODO** D3: モーダル連携（SearchBox → モーダル → 配置）
+
+### Phase E: 後送り（任意）
+
+- [ ] **cc:TODO** E1: DFC JP 検索（bulk data ダウンロード + ローカルインデックス）
+- [ ] **cc:TODO** E2: ASCII 候補に日本語名併記
+
+---
+
 ## 🟢 Phase 2: 拡張機能（MVP 完了後）
 
 - [ ] **cc:TODO** **[priority]** 重ね合わせの動作安定化 — Shift+ドラッグの判定が不安定。`useRefShiftKey` を `event.activatorEvent.shiftKey` + `pointermove` 経由に変更検討。dnd-kit `pointerWithin` collision detection 試行

@@ -186,9 +186,9 @@
 
 .text-output-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: baseline;
-  gap: 8px;
+  gap: 12px;
 }
 
 .text-output-header h2 {
@@ -544,4 +544,33 @@
 .card-view:hover .card-remove,
 .card-remove:focus-visible {
   opacity: 1;
+}
+
+.card-flip {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 3;
+}
+
+.card-view:hover .card-flip,
+.card-flip:focus-visible {
+  opacity: 1;
+}
+
+.card-flip:hover {
+  background: var(--accent);
 }
