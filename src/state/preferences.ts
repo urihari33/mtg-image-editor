@@ -1,0 +1,45 @@
+export type PreferLanguage = 'ja' | 'en'
+export type PreferAge = 'oldest' | 'newest'
+
+export type Preferences = {
+  preferLanguage: PreferLanguage
+  preferAge: PreferAge
+}
+
+export const PREFERENCES_STORAGE_KEY = 'mtgImageEditor.preferences.v1'
+
+export const DEFAULT_PREFERENCES: Preferences = {
+  preferLanguage: 'ja',
+  preferAge: 'oldest',
+}
+
+export function loadPreferences(): Preferences {
+  try {
+    const raw = localStorage.getItem(PREFERENCES_STORAGE_KEY)
+    if (!raw) return DEFAULT_PREFERENCES
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return DEFAULT_PREFERENCES
+    const v = parsed as Record<string, unknown>
+    return {
+      preferLanguage:
+        v.preferLanguage === 'en' ? 'en' : DEFAULT_PREFERENCES.preferLanguage,
+      preferAge:
+        v.preferAge === 'newest' ? 'newest' : DEFAULT_PREFERENCES.preferAge,
+    }
+  } catch (error) {
+    console.warn('Failed to load preferences from localStorage', error)
+    return DEFAULT_PREFERENCES
+  }
+}
+
+export function savePreferences(prefs: Preferences): void {
+  try {
+    localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(prefs))
+  } catch (error) {
+    console.warn('Failed to save preferences to localStorage', error)
+  }
+}
+
+export function clearPreferencesStorage(): void {
+  localStorage.removeItem(PREFERENCES_STORAGE_KEY)
+}

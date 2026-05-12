@@ -40,6 +40,7 @@ import {
   setSidebarPlaceholder,
 } from './state/layout'
 import { useHistory } from './state/useHistory'
+import { usePreferences } from './state/usePreferences'
 import type { CardEntry, LayoutItem } from './types/card'
 import './App.css'
 
@@ -50,6 +51,7 @@ function App() {
   const [activeItem, setActiveItem] = useState<LayoutItem | null>(null)
   const [activeSidebarCard, setActiveSidebarCard] = useState<CardEntry | null>(null)
   const { history, addCard: addToHistory, clear: clearHistory } = useHistory()
+  const { preferences, setPreference } = usePreferences()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -69,7 +71,10 @@ function App() {
       setIsAdding(true)
       setError(null)
       try {
-        const card = await fetchCardWithLanguagePreference(englishName)
+        const card = await fetchCardWithLanguagePreference(englishName, {
+          preferLanguage: preferences.preferLanguage,
+          preferAge: preferences.preferAge,
+        })
         if (!card) {
           setError(`カードが見つかりません: ${englishName}`)
           return
@@ -81,7 +86,7 @@ function App() {
         setIsAdding(false)
       }
     },
-    [addCard],
+    [addCard, preferences.preferLanguage, preferences.preferAge],
   )
 
   const handleRemoveItem = useCallback((itemId: string) => {
@@ -310,6 +315,40 @@ function App() {
           <header className="app-header">
             <h1>MTG Image Editor</h1>
             <SearchBox onPickSuggestion={handlePickSuggestion} disabled={isAdding} />
+            <div className="preference-toggles" role="group" aria-label="検索オプション">
+              <button
+                type="button"
+                className="preference-toggle"
+                onClick={() =>
+                  setPreference(
+                    'preferLanguage',
+                    preferences.preferLanguage === 'ja' ? 'en' : 'ja',
+                  )
+                }
+                aria-pressed={preferences.preferLanguage === 'ja'}
+                title="クリックで日本語版/英語版優先を切替"
+              >
+                {preferences.preferLanguage === 'ja'
+                  ? '🇯🇵 日本語版優先'
+                  : '🇺🇸 英語版優先'}
+              </button>
+              <button
+                type="button"
+                className="preference-toggle"
+                onClick={() =>
+                  setPreference(
+                    'preferAge',
+                    preferences.preferAge === 'oldest' ? 'newest' : 'oldest',
+                  )
+                }
+                aria-pressed={preferences.preferAge === 'oldest'}
+                title="クリックで古い/新しい印刷の優先を切替"
+              >
+                {preferences.preferAge === 'oldest'
+                  ? '📜 古いカード優先'
+                  : '✨ 新しいカード優先'}
+              </button>
+            </div>
             <p className="app-hint">
               Tip: カードをドラッグで並び替え。右下の 🔗 ゾーンへドロップで重ね合わせ（60% 右下揃え）。サイドバーの履歴もドラッグで配置できます。
             </p>

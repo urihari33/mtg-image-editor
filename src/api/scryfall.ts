@@ -151,9 +151,22 @@ function toCardEntry(
   }
 }
 
+export type PreferLanguage = 'ja' | 'en'
+export type PreferAge = 'oldest' | 'newest'
+
+export type FetchCardOptions = {
+  preferLanguage?: PreferLanguage
+  preferAge?: PreferAge
+}
+
 export async function fetchCardWithLanguagePreference(
   name: string,
+  options: FetchCardOptions = {},
 ): Promise<CardEntry | null> {
+  const preferLanguage = options.preferLanguage ?? 'ja'
+  const preferAge = options.preferAge ?? 'oldest'
+  const dir = preferAge === 'oldest' ? 'asc' : 'desc'
+
   const trimmed = name.trim()
   if (!trimmed) return null
 
@@ -162,22 +175,32 @@ export async function fetchCardWithLanguagePreference(
   })
   if (!english) return null
 
-  const japaneseList = await scryfallFetch<ScryfallList<ScryfallCard>>(
+  const printList = await scryfallFetch<ScryfallList<ScryfallCard>>(
     '/cards/search',
     {
-      q: `oracleid:${english.oracle_id} lang:ja`,
+      q: `oracleid:${english.oracle_id} lang:${preferLanguage}`,
       unique: 'prints',
       order: 'released',
-      dir: 'asc',
+      dir,
     },
   )
 
-  if (japaneseList && japaneseList.data.length > 0) {
-    const withPrintedName = japaneseList.data.find(
-      (c) => printedNameOf(c) !== undefined,
-    )
-    const japanese = withPrintedName ?? japaneseList.data[0]
-    return toCardEntry(japanese, printedNameOf(japanese))
+  if (printList && printList.data.length > 0) {
+    if (preferLanguage === 'ja') {
+      const first = printList.data[0]
+      if (printedNameOf(first) !== undefined) {
+        return toCardEntry(first, printedNameOf(first))
+      }
+      const withPrintedName = printList.data.find(
+        (c) => printedNameOf(c) !== undefined,
+      )
+      if (withPrintedName) {
+        return toCardEntry(withPrintedName, printedNameOf(withPrintedName))
+      }
+      // no usable JP printing — fall through to English
+    } else {
+      return toCardEntry(printList.data[0], undefined)
+    }
   }
   return toCardEntry(english, undefined)
 }

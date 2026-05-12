@@ -83,11 +83,11 @@
 - [x] **cc:DONE** A2: 画像エクスポート軽量化（`cache: 'no-store'` → 既定、`_cors=1` cache buster 維持）
 - [x] **cc:DONE** A3: 両面カードの裏返しボタン（左上、DFC 限定、faceIndex で表↔裏切替）
 
-### Phase B: 検索 UI 強化 `cc:TODO`
+### Phase B: 検索 UI 強化 `cc:DONE` — 2026-05-12
 
-- [ ] **cc:TODO** B1: 検索トグル「JP優先 / EN優先」
-- [ ] **cc:TODO** B2: 検索トグル「古い / 新しい優先」
-- [ ] **cc:TODO** B3: トグル状態の localStorage 永続化
+- [x] **cc:DONE** B1: 検索トグル「日本語版/英語版優先」 (`preferLanguage`)
+- [x] **cc:DONE** B2: 検索トグル「古い/新しいカード優先」 (`preferAge` → `dir=asc/desc`)
+- [x] **cc:DONE** B3: トグル状態の localStorage 永続化 (`mtgImageEditor.preferences.v1`)
 
 ### Phase C: 出力レイアウト調整 `cc:TODO`
 

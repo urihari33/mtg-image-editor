@@ -319,6 +319,103 @@ describe('fetchCardWithLanguagePreference', () => {
     expect(result!.displayName).toBe('表面')
   })
 
+  it('preferLanguage=en skips Japanese search and returns English oldest printing', async () => {
+    let searchCallParams: URLSearchParams | null = null
+    server.use(
+      http.get(`${SCRYFALL_BASE}/cards/named`, () =>
+        HttpResponse.json({
+          object: 'card',
+          id: 'en-id',
+          oracle_id: 'oid-en',
+          name: 'Lightning Bolt',
+          lang: 'en',
+          set: 'clu',
+          set_name: 'Cluedo',
+          released_at: '2024-02-23',
+          image_uris: { ...emptyImageUris, normal: 'https://example.com/clu-en.jpg' },
+        }),
+      ),
+      http.get(`${SCRYFALL_BASE}/cards/search`, ({ request }) => {
+        searchCallParams = new URL(request.url).searchParams
+        return HttpResponse.json({
+          object: 'list',
+          total_cards: 1,
+          has_more: false,
+          data: [
+            {
+              object: 'card',
+              id: 'lea-id',
+              oracle_id: 'oid-en',
+              name: 'Lightning Bolt',
+              lang: 'en',
+              set: 'lea',
+              set_name: 'Alpha',
+              released_at: '1993-08-05',
+              image_uris: { ...emptyImageUris, normal: 'https://example.com/lea-en.jpg' },
+            },
+          ],
+        })
+      }),
+    )
+    const result = await fetchCardWithLanguagePreference('Lightning Bolt', {
+      preferLanguage: 'en',
+      preferAge: 'oldest',
+    })
+    expect(searchCallParams).not.toBeNull()
+    expect(searchCallParams!.get('q')).toBe('oracleid:oid-en lang:en')
+    expect(searchCallParams!.get('dir')).toBe('asc')
+    expect(result).not.toBeNull()
+    expect(result!.scryfallId).toBe('lea-id')
+    expect(result!.imageUrl).toBe('https://example.com/lea-en.jpg')
+    expect(result!.hasJapanese).toBe(false)
+  })
+
+  it('preferAge=newest sends dir=desc', async () => {
+    let searchCallParams: URLSearchParams | null = null
+    server.use(
+      http.get(`${SCRYFALL_BASE}/cards/named`, () =>
+        HttpResponse.json({
+          object: 'card',
+          id: 'en-id',
+          oracle_id: 'oid-newest',
+          name: 'Lightning Bolt',
+          lang: 'en',
+          set: 'clu',
+          set_name: 'Cluedo',
+          released_at: '2024-02-23',
+          image_uris: { ...emptyImageUris, normal: 'https://example.com/en.jpg' },
+        }),
+      ),
+      http.get(`${SCRYFALL_BASE}/cards/search`, ({ request }) => {
+        searchCallParams = new URL(request.url).searchParams
+        return HttpResponse.json({
+          object: 'list',
+          total_cards: 1,
+          has_more: false,
+          data: [
+            {
+              object: 'card',
+              id: 'fin-id',
+              oracle_id: 'oid-newest',
+              name: 'Lightning Bolt',
+              printed_name: '稲妻',
+              lang: 'ja',
+              set: 'fin',
+              set_name: 'Fin',
+              released_at: '2025-06-13',
+              image_uris: { ...emptyImageUris, normal: 'https://example.com/fin-ja.jpg' },
+            },
+          ],
+        })
+      }),
+    )
+    await fetchCardWithLanguagePreference('Lightning Bolt', {
+      preferAge: 'newest',
+    })
+    expect(searchCallParams).not.toBeNull()
+    expect(searchCallParams!.get('dir')).toBe('desc')
+  })
+
   it('handles double-faced cards by picking the front face image', async () => {
     server.use(
       http.get(`${SCRYFALL_BASE}/cards/named`, () =>
