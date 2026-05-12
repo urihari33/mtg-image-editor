@@ -64,11 +64,15 @@
 - 右クリックメニュー / 専用ボタン — 操作ステップが増える。
 **影響範囲**: ドラッグハンドラ、レイアウト状態スキーマ（カードに `overlayOf` 参照を持たせる）。
 
+> **【2026-05-12 改訂】**: ユーザーフィードバックで Shift+ドラッグの認識が不安定との指摘あり、**右下「🔗 重ねる」ドロップゾーン方式**に切替。各カードの右下 55%×48% を専用 droppable とし、`pointerWithin` collision detection + drag preview を 60% 縮小して下のゾーンを視認可能にした。Shift キー検出ロジック (`useRefShiftKey`) は撤去。
+
 ## 2026-05-11 — 画像書き出し: PNG + 透明背景 + 高解像度
 **決定**: 出力は PNG、背景は透明、Scryfall normal 画像（488×680 px 程度）の解像度をそのまま保持。書き出しライブラリは `html-to-image`（または同等の DOM→Canvas 系）を検討。
 **理由**: SNS 投稿時の二次加工しやすさ（透明背景＋PNG）と、印刷物にも耐える解像度。要件で背景指定はなく、透明であれば後処理で白背景化も可能。
 **代替案**: JPG / 白背景 — ファイルサイズは小さいが透明化できない。
 **影響範囲**: 書き出しコンポーネント、ライブラリ選定。
+
+> **【2026-05-12 改訂】**: html-to-image は SVG foreignObject 描画で flex layout が縦並びに崩れるバグが多発 → **Canvas 2D 直接描画 (`renderLayout.ts` / `renderLayoutToCanvas`)** に置換。`fetch + createImageBitmap` で画像取得、`drawImage` で配置。CORS は `?_cors=1` cache buster で display `<img>` キャッシュと分離（Scryfall は `Vary: Origin` で正しく区別）。html-to-image 依存は package.json から削除済。
 
 ## 2026-05-11 — カード名テキスト出力: 「行＝改行、同行＝スペース区切り」
 **決定**: 出力形式は「《カード名》 《カード名》 ...\n《カード名》 ...」。レイアウトの行構造をそのまま反映。表示言語に従い、日本語版があれば日本語名、なければ英語名を出力。
@@ -78,6 +82,36 @@
 - タブ区切り — 表計算用途。MTG 用途では一般的ではない。
 - MTG デッキ表記（枚数付き） — デッキリスト用途であり、画像並べ用ではない。
 **影響範囲**: テキスト書き出しロジック、状態スキーマ（行構造の保持）。
+
+## 2026-05-12 — 検索プリファレンス (preferLanguage / preferAge / outputAlignment / pickPrintMode) を localStorage 永続化
+**決定**: `Preferences` 型に 4 つのユーザー設定を集約し、`src/state/preferences.ts` で `localStorage` (`mtgImageEditor.preferences.v1`) に永続化。`usePreferences` フックで提供。
+**理由**: ユーザーフィードバックで「言語/年代の優先切替」「整列オプション」「画像自由選択モード」が要求された。設定は 1 つの場所に集約しないと bug を生む（個別 localStorage 鍵だと衝突しがち）。
+**代替案**:
+- 個別 React state（永続化なし） — リロードで失われ UX が悪い
+- 個別 localStorage 鍵 — 不整合の温床
+**影響範囲**: scryfall.ts (`fetchCardWithLanguagePreference` / `fetchAllPrintings` に options 受け渡し)、renderLayout.ts (`alignment`)、App/ImageExport の UI、Plans.md Phase 2 で `bool` 拡張時もここに追加する。
+
+## 2026-05-12 — 両面カード (DFC): `faces` + `faceIndex` で表↔裏切替
+**決定**: `CardEntry.faces?: CardFace[]` に各面の `imageUrl`/`displayName`/`japaneseName` を保持。`LayoutItem.faceIndex?: number` で現在表示中の面を指定。`flipItem(layout, itemId)` で `(current ?? 0 + 1) % faces.length` を回す。`getActiveFaceFields` / `activeImageUrl` / `activeDisplayName` の小ヘルパで CardView / formatCardNames / renderLayout が face-aware に動作。
+**理由**: ユーザー要望「両面カードに裏返すオプション」。`faceIndex` を `LayoutItem` に置くことで、同じ DFC カードを 2 つ配置して別々の面を表示できる（履歴側の `CardEntry` は不変、レイアウト側だけで状態を持つ）。
+**代替案**:
+- 表/裏で別の `CardEntry` を発行 — 履歴やキャッシュが膨らむ
+- グローバル "flipped IDs" Set — テストしづらい
+**影響範囲**: types/card.ts、api/scryfall.ts (`buildFaces`)、state/layout.ts (`flipItem`)、CardView、Canvas (`onFlipItem` 伝播)、formatCardNames、renderLayout。
+
+## 2026-05-12 — DFC の日本語検索: Scryfall API 制約のため未対応（Phase E 後送り）
+**決定**: 両面カードの日本語名（face-level `printed_name`）は Scryfall の `name:` フィルタの検索対象に**含まれない**。当面は英語名でカードを検索し、`fetchCardWithLanguagePreference` で日本語版を引き当てる現行ロジックでカバー。完全対応は bulk data 経由のローカルインデックス（Phase E `cc:TODO`）。
+**理由**: 実証で `name:アン+lang:ja` は単面カード（top-level `printed_name`）にはヒットするが、DFC は `top.printed_name=null` で face-level しか日本語名がなく、`name:` フィルタが face-level を検索しないため 0 件。
+**代替案**:
+- bulk data ダウンロード (約 500MB JSON) — Phase 3/E 規模
+- Scryfall への機能追加要望 — 現実的でない
+**影響範囲**: 検索 UI（DFC を JP 名で検索しても出ない既知制約として運用）、Phase E のスコープ。
+
+## 2026-05-12 — overlay-of-overlay 禁止
+**決定**: `setOverlay(layout, itemId, baseItemId)` は `baseLocation.item.overlayOf !== undefined` なら no-op で拒否。
+**理由**: `groupRowItems` が 2 段目の overlay を取りこぼし、テキスト出力と UI レンダリングで不一致が生じる（state には残るが画面に出ない）。再帰的 overlay は UX 上も意味が薄い。
+**代替案**: 多段 overlay をサポート — グルーピングとレンダリングの複雑化、UX 上のメリットなし。
+**影響範囲**: state/layout.ts setOverlay、テスト、Canvas OverlayDropZone（active が overlay 持ち base の時 zone を無効化する既存対応と組み合わせて二重防御）。
 
 ## 2026-05-11 — サイドバー検索履歴: localStorage 永続 + 手動クリア
 **決定**: 検索/追加したカードを localStorage に最大 100 件保存。同一カード（Scryfall `oracle_id`）は重複排除、最新を先頭。サイドバーに「履歴をクリア」ボタンを設置。
