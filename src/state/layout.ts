@@ -4,6 +4,30 @@ function makeId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`
 }
 
+export type ItemGroup = {
+  base: LayoutItem
+  overlays: LayoutItem[]
+}
+
+export function groupRowItems(items: LayoutItem[]): ItemGroup[] {
+  const groups: ItemGroup[] = []
+  const byId = new Map<string, ItemGroup>()
+  for (const it of items) {
+    if (!it.overlayOf) {
+      const group: ItemGroup = { base: it, overlays: [] }
+      groups.push(group)
+      byId.set(it.id, group)
+    }
+  }
+  for (const it of items) {
+    if (it.overlayOf) {
+      const group = byId.get(it.overlayOf)
+      if (group) group.overlays.push(it)
+    }
+  }
+  return groups
+}
+
 export function createInitialLayout(): Layout {
   return {
     rows: [{ id: makeId('row'), items: [] }],
@@ -117,6 +141,76 @@ export function addCardToRow(
           ...row.items.slice(0, insertAt),
           newItem,
           ...row.items.slice(insertAt),
+        ],
+      }
+    }),
+  }
+}
+
+export function setSidebarPlaceholder(
+  layout: Layout,
+  placeholderId: string,
+  card: CardEntry,
+  targetRowId: string,
+  targetIndex: number,
+): Layout {
+  const existing = findItem(layout, placeholderId)
+  const cleaned = existing ? removeItemFromLayout(layout, placeholderId) : layout
+  if (!cleaned.rows.some((r) => r.id === targetRowId)) return layout
+  const newItem: LayoutItem = { id: placeholderId, card }
+  return {
+    rows: cleaned.rows.map((row) => {
+      if (row.id !== targetRowId) return row
+      const clamped = Math.max(0, Math.min(targetIndex, row.items.length))
+      return {
+        ...row,
+        items: [
+          ...row.items.slice(0, clamped),
+          newItem,
+          ...row.items.slice(clamped),
+        ],
+      }
+    }),
+  }
+}
+
+export function finalizePlaceholder(
+  layout: Layout,
+  placeholderId: string,
+): Layout {
+  const newId = makeId('item')
+  return {
+    rows: layout.rows.map((row) => ({
+      ...row,
+      items: row.items.map((it) =>
+        it.id === placeholderId ? { ...it, id: newId } : it,
+      ),
+    })),
+  }
+}
+
+export function addCardAsOverlay(
+  layout: Layout,
+  card: CardEntry,
+  baseItemId: string,
+): Layout {
+  const baseLocation = findItem(layout, baseItemId)
+  if (!baseLocation) return layout
+  return {
+    rows: layout.rows.map((row) => {
+      if (row.id !== baseLocation.row.id) return row
+      const baseIdx = row.items.findIndex((it) => it.id === baseItemId)
+      const newItem: LayoutItem = {
+        id: makeId('item'),
+        card,
+        overlayOf: baseItemId,
+      }
+      return {
+        ...row,
+        items: [
+          ...row.items.slice(0, baseIdx + 1),
+          newItem,
+          ...row.items.slice(baseIdx + 1),
         ],
       }
     }),

@@ -1,4 +1,5 @@
-import type { Layout, LayoutItem } from '../types/card'
+import type { Layout } from '../types/card'
+import { groupRowItems } from '../state/layout'
 
 export type RenderOptions = {
   pixelRatio?: number
@@ -8,27 +9,6 @@ export type RenderOptions = {
   cardGap?: number
   overlayScale?: number
   overlayOffset?: number
-}
-
-type Group = { base: LayoutItem; overlays: LayoutItem[] }
-
-export function groupRowItems(items: LayoutItem[]): Group[] {
-  const groups: Group[] = []
-  const byId = new Map<string, Group>()
-  for (const it of items) {
-    if (!it.overlayOf) {
-      const g: Group = { base: it, overlays: [] }
-      groups.push(g)
-      byId.set(it.id, g)
-    }
-  }
-  for (const it of items) {
-    if (it.overlayOf) {
-      const g = byId.get(it.overlayOf)
-      if (g) g.overlays.push(it)
-    }
-  }
-  return groups
 }
 
 async function loadBitmap(url: string): Promise<ImageBitmap> {

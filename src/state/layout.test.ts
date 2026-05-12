@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { CardEntry, Layout, LayoutItem } from '../types/card'
 import {
+  addCardAsOverlay,
   addCardToLayout,
   addCardToRow,
   addNewEmptyRow,
   clearOverlay,
   createInitialLayout,
+  finalizePlaceholder,
   findItem,
   moveItem,
   pruneEmptyRows,
   removeItemFromLayout,
   setOverlay,
+  setSidebarPlaceholder,
 } from './layout'
 
 function makeCard(name: string, oracleId = name.toLowerCase().replace(/\s+/g, '-')): CardEntry {
@@ -209,6 +212,79 @@ describe('addCardToRow', () => {
   it('is a no-op when the target row id is unknown', () => {
     const layout = buildLayout([{ id: 'r1', items: [item('a')] }])
     expect(addCardToRow(layout, makeCard('Z'), 'unknown')).toBe(layout)
+  })
+})
+
+describe('setSidebarPlaceholder', () => {
+  it('inserts a placeholder with the given id at the target row/index', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), item('b')] },
+    ])
+    const next = setSidebarPlaceholder(layout, 'history-x', makeCard('Z'), 'r1', 1)
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['a', 'history-x', 'b'])
+    expect(next.rows[0].items[1].card.englishName).toBe('Z')
+  })
+
+  it('moves an existing placeholder rather than duplicating', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), { id: 'ph', card: makeCard('X') }, item('b')] },
+    ])
+    const next = setSidebarPlaceholder(layout, 'ph', makeCard('X'), 'r1', 2)
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['a', 'b', 'ph'])
+    expect(next.rows[0].items.filter((i) => i.id === 'ph')).toHaveLength(1)
+  })
+
+  it('moves placeholder across rows', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), { id: 'ph', card: makeCard('X') }] },
+      { id: 'r2', items: [item('b')] },
+    ])
+    const next = setSidebarPlaceholder(layout, 'ph', makeCard('X'), 'r2', 0)
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['a'])
+    expect(next.rows[1].items.map((i) => i.id)).toEqual(['ph', 'b'])
+  })
+
+  it('is a no-op for unknown row', () => {
+    const layout = buildLayout([{ id: 'r1', items: [item('a')] }])
+    expect(setSidebarPlaceholder(layout, 'ph', makeCard('X'), 'unknown', 0)).toBe(
+      layout,
+    )
+  })
+})
+
+describe('finalizePlaceholder', () => {
+  it('renames the placeholder id while preserving card and position', () => {
+    const card = makeCard('Z')
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), { id: 'ph', card }, item('b')] },
+    ])
+    const next = finalizePlaceholder(layout, 'ph')
+    const renamed = next.rows[0].items[1]
+    expect(renamed.id).not.toBe('ph')
+    expect(renamed.id).toMatch(/^item-/)
+    expect(renamed.card).toBe(card)
+    expect(next.rows[0].items[0].id).toBe('a')
+    expect(next.rows[0].items[2].id).toBe('b')
+  })
+})
+
+describe('addCardAsOverlay', () => {
+  it('inserts the new card immediately after the base with overlayOf set', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), item('b')] },
+    ])
+    const next = addCardAsOverlay(layout, makeCard('Overlay'), 'a')
+    expect(next.rows[0].items.map((i) => i.card.englishName)).toEqual([
+      'a',
+      'Overlay',
+      'b',
+    ])
+    expect(next.rows[0].items[1].overlayOf).toBe('a')
+  })
+
+  it('is a no-op when the base id is unknown', () => {
+    const layout = buildLayout([{ id: 'r1', items: [item('a')] }])
+    expect(addCardAsOverlay(layout, makeCard('Z'), 'unknown')).toBe(layout)
   })
 })
 

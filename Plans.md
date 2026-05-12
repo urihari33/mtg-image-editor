@@ -84,6 +84,10 @@
 - [ ] **cc:TODO** ASCII オートコンプリート分岐で日本語名併記（現状英語名のみで CLAUDE.md の「両言語検索」と齟齬）
 - [ ] **cc:TODO** `renderLayout.ts` の geometry に unit テスト追加（空 layout / canvas 寸法 / 空行フィルタ）
 - [ ] **cc:TODO** App.handleDragEnd の integration テスト（JSDOM + synthetic pointer/keyboard）
+- [ ] **cc:TODO** **[a11y]** NewRowZone がキーボードから到達不能 → 「行を追加」ボタン代替を追加
+- [ ] **cc:TODO** **[a11y]** TextOutput の `aria-live` を button の中ではなく status 用 `<span>` に分離
+- [ ] **cc:TODO** [perf low] 100 枚規模で useDndContext 由来の re-render が支配的 → OverlayDropZone を React.memo / useDndMonitor 化
+- [ ] **cc:TODO** renderLayout の右下余白 `+overlayOffset` 条件付き化（rightmost/bottommost に overlay がある時のみ）
 - [ ] **cc:TODO** 絵柄選択 UI（プリント一覧モーダル、`unique=prints&order=released&dir=asc`）
 - [ ] **cc:TODO** カード詳細表示（クリックで拡大、Oracle テキスト表示）
 - [ ] **cc:TODO** レイアウトの保存/読み込み（localStorage、複数スロット）

@@ -29,12 +29,7 @@ async function waitForRateLimit(): Promise<void> {
 
 async function rawFetch(url: string): Promise<Response> {
   return fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      // User-Agent is filtered by browsers; Scryfall accepts requests without it.
-      // Kept here so non-browser runtimes (tests / future tools) identify themselves.
-      'User-Agent': 'mtgImageEditor/0.1',
-    },
+    headers: { Accept: 'application/json' },
   })
 }
 
