@@ -18,6 +18,7 @@ import type {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Canvas } from './components/Canvas'
 import { CardView } from './components/CardView'
+import { Footer } from './components/Footer'
 import { ImageExport } from './components/ImageExport'
 import { PrintPickerModal } from './components/PrintPickerModal'
 import { SearchBox } from './components/SearchBox'
@@ -441,6 +442,7 @@ function App() {
             onClearAll={handleClearAll}
           />
           <TextOutput layout={layout} />
+          <Footer />
         </div>
       </div>
       {pickerState && (

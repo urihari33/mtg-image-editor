@@ -310,6 +310,35 @@
   margin: 4px 0 0;
 }
 
+.app-footer {
+  margin-top: 8px;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-footer-line {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.app-footer-line a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.app-footer-line a:hover {
+  text-decoration: underline;
+}
+
+.app-footer-disclaimer {
+  opacity: 0.8;
+}
+
 .print-picker-overlay {
   position: fixed;
   inset: 0;

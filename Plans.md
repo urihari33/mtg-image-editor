@@ -106,6 +106,44 @@
 
 ---
 
+## 🚀 Phase F: 一般公開（Cloudflare Pages）
+
+ホスティング先: Cloudflare Pages（帯域無制限・無料・GitHub 連携で自動デプロイ）。
+法的根拠: WotC Fan Content Policy + Scryfall API ToS。両者とも「無料・非公式・帰属表示」を満たせば個人運営アプリは許容範囲。
+
+- [x] **cc:DONE** F1: フッター免責 UI コンポーネント追加 — 2026-05-12
+  - `src/components/Footer.tsx` 新設、`.app-main` 末尾に配置
+  - WotC: `Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC. This is unofficial Fan Content not approved/endorsed by Wizards.`
+  - Scryfall: `Card data and images provided by Scryfall.` + scryfall.com へのリンク（target="_blank" rel="noopener noreferrer"）
+  - 実装メモ: ImageExport は Canvas 2D 直描画（`renderLayoutToCanvas`）なので、フッターを画面に表示してもエクスポート画像には影響しない。非表示制御は不要
+- [x] **cc:DONE** F2: README 整備 — 2026-05-13
+  - README.md を全面改訂（公開デプロイ前提に、機能リスト最新化、アーキテクチャ更新、デプロイ章追加）
+  - ライセンス節を新設: コード MIT / データ画像は WotC/Scryfall 帰属
+  - Fan Content 免責文を追加（フッターと同一文言）
+  - `LICENSE` ファイル（MIT、Copyright 2026 urihari33）を新規作成
+- [x] **cc:DONE** F3: 公開ビルド設定確認 — 2026-05-13
+  - `vite.config.ts` の `base` 未指定（デフォルト `/`）→ Cloudflare Pages のルート配信に適合
+  - Sourcemap は Vite デフォルトで無効（`dist/assets` に `.map` 無し）→ 変更不要
+  - `dist/index.html` のアセットパスが `/assets/...` の絶対パスで生成済み
+  - `index.html` に description / OGP (og:type/title/description/locale) / twitter:card / theme-color 追加
+  - **未対応**: `og:image` 用の PNG (1200×630 推奨) を `public/og-image.png` に置く運用は後送り。og:url も独自ドメイン確定後に追加可能
+- [x] **cc:DONE** F4: 公開禁止事項セルフチェック — 2026-05-13
+  - MTG ロゴ・公式アイコン未使用 ✅（favicon.svg は紫色の幾何学グラフィックで WotC 商標と類似性なし）
+  - 「Official / 公式」表現なし ✅（Footer で逆に "unofficial Fan Content" と明示）
+  - 有料機能・寄付・サブスク言及なし ✅
+  - User-Agent 手動設定なし ✅（`scryfall.ts` は `Accept: application/json` のみ）
+  - トラッキング/Analytics なし ✅（localStorage はローカル永続化のみ、外部送信なし）
+  - MTG フォーマット用語（pioneer/standard/edh/wpn 等）の固有商標未使用 ✅
+  - **削除**: 未使用の `public/icons.svg`（SNS アイコン群、Vite テンプレ由来のデッドアセット）
+- [ ] **cc:TODO** F5: Cloudflare Pages デプロイ
+  - GitHub に push（master → main の検討含む）
+  - Cloudflare Pages で新規プロジェクト → リポジトリ連携
+  - ビルドコマンド: `npm run build` / 出力: `dist/`
+  - 初回デプロイ後、`*.pages.dev` URL で動作確認
+- [ ] **cc:TODO** F6: [任意] カスタムドメイン設定（用意がある場合）
+
+---
+
 ## 🟢 Phase 2: 拡張機能（MVP 完了後）
 
 - [ ] **cc:TODO** **[priority]** 重ね合わせの動作安定化 — Shift+ドラッグの判定が不安定。`useRefShiftKey` を `event.activatorEvent.shiftKey` + `pointermove` 経由に変更検討。dnd-kit `pointerWithin` collision detection 試行
