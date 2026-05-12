@@ -135,11 +135,13 @@
   - トラッキング/Analytics なし ✅（localStorage はローカル永続化のみ、外部送信なし）
   - MTG フォーマット用語（pioneer/standard/edh/wpn 等）の固有商標未使用 ✅
   - **削除**: 未使用の `public/icons.svg`（SNS アイコン群、Vite テンプレ由来のデッドアセット）
-- [ ] **cc:TODO** F5: Cloudflare Pages デプロイ
-  - GitHub に push（master → main の検討含む）
-  - Cloudflare Pages で新規プロジェクト → リポジトリ連携
-  - ビルドコマンド: `npm run build` / 出力: `dist/`
-  - 初回デプロイ後、`*.pages.dev` URL で動作確認
+- [x] **cc:DONE** F5: Cloudflare Pages デプロイ — 2026-05-13
+  - GitHub リポジトリ作成: `urihari33/mtg-image-editor` (Public, MIT License)
+  - master → main 改名
+  - `.nvmrc` を追加（Node 22 指定）
+  - Cloudflare Pages 連携: Framework=React (Vite), Build=`npm run build`, Output=`dist`
+  - 公開 URL: **https://mtg-image-editor.pages.dev/**
+  - 検証: HTTP/2 200, 全 meta タグ配信確認, CDN=NRT(東京)
 - [ ] **cc:TODO** F6: [任意] カスタムドメイン設定（用意がある場合）
 
 ---
