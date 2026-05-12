@@ -19,10 +19,11 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Canvas } from './components/Canvas'
 import { CardView } from './components/CardView'
 import { ImageExport } from './components/ImageExport'
+import { PrintPickerModal } from './components/PrintPickerModal'
 import { SearchBox } from './components/SearchBox'
 import { Sidebar } from './components/Sidebar'
 import { TextOutput } from './components/TextOutput'
-import { fetchCardWithLanguagePreference } from './api/scryfall'
+import { fetchAllPrintings, fetchCardWithLanguagePreference } from './api/scryfall'
 import {
   addCardAsOverlay,
   addCardToLayout,
@@ -44,12 +45,20 @@ import { usePreferences } from './state/usePreferences'
 import type { CardEntry, LayoutItem } from './types/card'
 import './App.css'
 
+type PickerState = {
+  title: string
+  printings: CardEntry[]
+  loading: boolean
+  error?: string | null
+}
+
 function App() {
   const [layout, setLayout] = useState(createInitialLayout)
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeItem, setActiveItem] = useState<LayoutItem | null>(null)
   const [activeSidebarCard, setActiveSidebarCard] = useState<CardEntry | null>(null)
+  const [pickerState, setPickerState] = useState<PickerState | null>(null)
   const { history, addCard: addToHistory, clear: clearHistory } = useHistory()
   const { preferences, setPreference } = usePreferences()
 
@@ -68,8 +77,39 @@ function App() {
 
   const handlePickSuggestion = useCallback(
     async (englishName: string) => {
-      setIsAdding(true)
       setError(null)
+      if (preferences.pickPrintMode) {
+        setPickerState({ title: englishName, printings: [], loading: true })
+        try {
+          const printings = await fetchAllPrintings(englishName, {
+            preferAge: preferences.preferAge,
+          })
+          if (printings.length === 0) {
+            setPickerState({
+              title: englishName,
+              printings: [],
+              loading: false,
+              error: 'プリントが見つかりませんでした',
+            })
+            return
+          }
+          setPickerState({
+            title: englishName,
+            printings,
+            loading: false,
+          })
+        } catch (e) {
+          setPickerState({
+            title: englishName,
+            printings: [],
+            loading: false,
+            error:
+              e instanceof Error ? e.message : '不明なエラーが発生しました',
+          })
+        }
+        return
+      }
+      setIsAdding(true)
       try {
         const card = await fetchCardWithLanguagePreference(englishName, {
           preferLanguage: preferences.preferLanguage,
@@ -86,8 +126,25 @@ function App() {
         setIsAdding(false)
       }
     },
-    [addCard, preferences.preferLanguage, preferences.preferAge],
+    [
+      addCard,
+      preferences.preferLanguage,
+      preferences.preferAge,
+      preferences.pickPrintMode,
+    ],
   )
+
+  const handlePickFromModal = useCallback(
+    (card: CardEntry) => {
+      addCard(card)
+      setPickerState(null)
+    },
+    [addCard],
+  )
+
+  const handleClosePicker = useCallback(() => {
+    setPickerState(null)
+  }, [])
 
   const handleRemoveItem = useCallback((itemId: string) => {
     setLayout((prev) => pruneEmptyRows(removeItemFromLayout(prev, itemId)))
@@ -348,6 +405,19 @@ function App() {
                   ? '📜 古いカード優先'
                   : '✨ 新しいカード優先'}
               </button>
+              <button
+                type="button"
+                className="preference-toggle"
+                onClick={() =>
+                  setPreference('pickPrintMode', !preferences.pickPrintMode)
+                }
+                aria-pressed={preferences.pickPrintMode}
+                title="ON: 候補クリック後にプリント一覧から画像を選んで配置"
+              >
+                {preferences.pickPrintMode
+                  ? '🖼️ 画像を選んで配置: ON'
+                  : '🖼️ 画像を選んで配置: OFF'}
+              </button>
             </div>
             <p className="app-hint">
               Tip: カードをドラッグで並び替え。右下の 🔗 ゾーンへドロップで重ね合わせ（60% 右下揃え）。サイドバーの履歴もドラッグで配置できます。
@@ -373,6 +443,16 @@ function App() {
           <TextOutput layout={layout} />
         </div>
       </div>
+      {pickerState && (
+        <PrintPickerModal
+          title={pickerState.title}
+          printings={pickerState.printings}
+          loading={pickerState.loading}
+          error={pickerState.error}
+          onPick={handlePickFromModal}
+          onClose={handleClosePicker}
+        />
+      )}
       <DragOverlay>
         <DragPreview activeItem={activeItem} activeSidebarCard={activeSidebarCard} />
       </DragOverlay>

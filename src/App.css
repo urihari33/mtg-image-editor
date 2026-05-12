@@ -310,6 +310,152 @@
   margin: 4px 0 0;
 }
 
+.print-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  animation: print-picker-fade 0.15s ease-out;
+}
+
+@keyframes print-picker-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.print-picker {
+  width: min(760px, 92vw);
+  height: 100svh;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: print-picker-slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes print-picker-slide {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.print-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.print-picker-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-h);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.print-picker-close {
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.print-picker-close:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.print-picker-meta-text {
+  font-size: 12px;
+  color: var(--text);
+  margin: 8px 20px 0;
+}
+
+.print-picker-status {
+  margin: 16px 20px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.print-picker-status.is-error {
+  color: #c0392b;
+}
+
+.print-picker-grid {
+  list-style: none;
+  margin: 0;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.print-picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-h);
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.print-picker-card:hover {
+  border-color: var(--accent-border);
+  transform: translateY(-2px);
+}
+
+.print-picker-card img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 488 / 680;
+  border-radius: 6px;
+  background: var(--code-bg);
+  display: block;
+}
+
+.print-picker-card-meta {
+  font-size: 11px;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 600px) {
+  .print-picker {
+    width: 100vw;
+  }
+}
+
 .search-box input {
   width: 100%;
   box-sizing: border-box;

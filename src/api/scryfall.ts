@@ -208,3 +208,39 @@ export async function fetchCardWithLanguagePreference(
 function printedNameOf(card: ScryfallCard): string | undefined {
   return card.printed_name ?? card.card_faces?.[0]?.printed_name
 }
+
+export type FetchAllPrintingsOptions = {
+  preferAge?: PreferAge
+}
+
+export async function fetchAllPrintings(
+  name: string,
+  options: FetchAllPrintingsOptions = {},
+): Promise<CardEntry[]> {
+  const trimmed = name.trim()
+  if (!trimmed) return []
+  const dir = options.preferAge === 'newest' ? 'desc' : 'asc'
+
+  const english = await scryfallFetch<ScryfallCard>('/cards/named', {
+    fuzzy: trimmed,
+  })
+  if (!english) return []
+
+  const list = await scryfallFetch<ScryfallList<ScryfallCard>>('/cards/search', {
+    q: `oracleid:${english.oracle_id}`,
+    unique: 'prints',
+    order: 'released',
+    dir,
+    include_multilingual: 'true',
+  })
+  if (!list) return []
+
+  const entries: CardEntry[] = []
+  for (const card of list.data) {
+    const isJa = card.lang === 'ja'
+    const japaneseName = isJa ? printedNameOf(card) : undefined
+    const entry = toCardEntry(card, japaneseName)
+    if (entry) entries.push(entry)
+  }
+  return entries
+}

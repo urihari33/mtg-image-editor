@@ -4,6 +4,7 @@ import { server } from '../test/server'
 import {
   SCRYFALL_BASE,
   __setRateLimitMsForTests,
+  fetchAllPrintings,
   fetchCardWithLanguagePreference,
   searchAutocomplete,
 } from './scryfall'
@@ -452,6 +453,113 @@ describe('fetchCardWithLanguagePreference', () => {
     const result = await fetchCardWithLanguagePreference('Delver of Secrets')
     expect(result).not.toBeNull()
     expect(result!.imageUrl).toBe('https://example.com/front.jpg')
+  })
+})
+
+describe('fetchAllPrintings', () => {
+  beforeEach(() => __setRateLimitMsForTests(0))
+
+  it('returns all printings across languages, ordered by preferAge', async () => {
+    let searchParams: URLSearchParams | null = null
+    server.use(
+      http.get(`${SCRYFALL_BASE}/cards/named`, () =>
+        HttpResponse.json({
+          object: 'card',
+          id: 'en-id',
+          oracle_id: 'oid-all',
+          name: 'Lightning Bolt',
+          lang: 'en',
+          set: 'clu',
+          set_name: 'Cluedo',
+          released_at: '2024-02-23',
+          image_uris: { ...emptyImageUris, normal: 'https://example.com/en.jpg' },
+        }),
+      ),
+      http.get(`${SCRYFALL_BASE}/cards/search`, ({ request }) => {
+        searchParams = new URL(request.url).searchParams
+        return HttpResponse.json({
+          object: 'list',
+          total_cards: 2,
+          has_more: false,
+          data: [
+            {
+              object: 'card',
+              id: 'lea-id',
+              oracle_id: 'oid-all',
+              name: 'Lightning Bolt',
+              lang: 'en',
+              set: 'lea',
+              set_name: 'Alpha',
+              released_at: '1993-08-05',
+              image_uris: { ...emptyImageUris, normal: 'https://example.com/lea.jpg' },
+            },
+            {
+              object: 'card',
+              id: '4ed-ja-id',
+              oracle_id: 'oid-all',
+              name: 'Lightning Bolt',
+              printed_name: '稲妻',
+              lang: 'ja',
+              set: '4ed',
+              set_name: 'Fourth Edition',
+              released_at: '1995-04-01',
+              image_uris: { ...emptyImageUris, normal: 'https://example.com/4ed-ja.jpg' },
+            },
+          ],
+        })
+      }),
+    )
+    const printings = await fetchAllPrintings('Lightning Bolt', { preferAge: 'oldest' })
+    expect(searchParams).not.toBeNull()
+    expect(searchParams!.get('include_multilingual')).toBe('true')
+    expect(searchParams!.get('dir')).toBe('asc')
+    expect(printings).toHaveLength(2)
+    expect(printings[0].scryfallId).toBe('lea-id')
+    expect(printings[1].scryfallId).toBe('4ed-ja-id')
+    expect(printings[1].japaneseName).toBe('稲妻')
+  })
+
+  it('returns empty array when /cards/named is 404', async () => {
+    server.use(
+      http.get(`${SCRYFALL_BASE}/cards/named`, () =>
+        HttpResponse.json(
+          { object: 'error', status: 404, code: 'not_found' },
+          { status: 404 },
+        ),
+      ),
+    )
+    expect(await fetchAllPrintings('NonExistent')).toEqual([])
+  })
+
+  it('passes preferAge=newest as dir=desc', async () => {
+    let searchParams: URLSearchParams | null = null
+    server.use(
+      http.get(`${SCRYFALL_BASE}/cards/named`, () =>
+        HttpResponse.json({
+          object: 'card',
+          id: 'x',
+          oracle_id: 'oid-x',
+          name: 'X',
+          lang: 'en',
+          set: 'tst',
+          set_name: 'Test',
+          released_at: '2024-01-01',
+          image_uris: { ...emptyImageUris, normal: 'https://example.com/x.jpg' },
+        }),
+      ),
+      http.get(`${SCRYFALL_BASE}/cards/search`, ({ request }) => {
+        searchParams = new URL(request.url).searchParams
+        return HttpResponse.json({
+          object: 'list',
+          total_cards: 0,
+          has_more: false,
+          data: [],
+        })
+      }),
+    )
+    await fetchAllPrintings('X', { preferAge: 'newest' })
+    expect(searchParams).not.toBeNull()
+    expect(searchParams!.get('dir')).toBe('desc')
   })
 })
 

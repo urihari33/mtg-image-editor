@@ -21,11 +21,13 @@ describe('loadPreferences', () => {
       preferLanguage: 'en',
       preferAge: 'newest',
       outputAlignment: 'right',
+      pickPrintMode: true,
     })
     expect(loadPreferences()).toEqual({
       preferLanguage: 'en',
       preferAge: 'newest',
       outputAlignment: 'right',
+      pickPrintMode: true,
     })
   })
 
@@ -83,6 +85,7 @@ describe('clearPreferencesStorage', () => {
       preferLanguage: 'en',
       preferAge: 'newest',
       outputAlignment: 'right',
+      pickPrintMode: false,
     })
     expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).not.toBeNull()
     clearPreferencesStorage()

@@ -93,11 +93,11 @@
 
 - [x] **cc:DONE** C1: 出力画像の整列オプション（左/中央/右、セグメント風 3 ボタン、デフォルト左、localStorage 永続化）
 
-### Phase D: 画像自由選択モード `cc:TODO`
+### Phase D: 画像自由選択モード `cc:DONE` — 2026-05-12
 
-- [ ] **cc:TODO** D1: 自由選択モード ON/OFF トグル
-- [ ] **cc:TODO** D2: プリント一覧モーダル（`unique=prints&order=released&dir=asc`）
-- [ ] **cc:TODO** D3: モーダル連携（SearchBox → モーダル → 配置）
+- [x] **cc:DONE** D1: 自由選択モード ON/OFF トグル（3 つ目の preference-toggle）
+- [x] **cc:DONE** D2: プリント一覧モーダル（右からスライドイン、`fetchAllPrintings` で `unique=prints + include_multilingual`、preferAge で `dir` 切替）
+- [x] **cc:DONE** D3: モーダル連携（pickPrintMode ON → handlePickSuggestion がモーダル表示、画像クリックで `addCard`）
 
 ### Phase E: 後送り（任意）
 
