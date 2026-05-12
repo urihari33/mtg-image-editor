@@ -242,6 +242,10 @@ export function setOverlay(
   const itemLocation = findItem(layout, itemId)
   const baseLocation = findItem(layout, baseItemId)
   if (!itemLocation || !baseLocation) return layout
+  // Reject overlay-of-overlay: base must not itself be an overlay.
+  // Otherwise groupRowItems would lose the second-level overlay from rendering
+  // while the data remains in state — desync.
+  if (baseLocation.item.overlayOf !== undefined) return layout
 
   const updatedItem: LayoutItem = { ...itemLocation.item, overlayOf: baseItemId }
 
@@ -292,7 +296,10 @@ export function clearOverlay(layout: Layout, itemId: string): Layout {
       ...row,
       items: row.items.map((it) => {
         if (it.id !== itemId || it.overlayOf === undefined) return it
-        return { id: it.id, card: it.card }
+        // Preserve faceIndex (DFC flip state) — only strip overlayOf.
+        const rest: LayoutItem = { ...it }
+        delete rest.overlayOf
+        return rest
       }),
     })),
   }

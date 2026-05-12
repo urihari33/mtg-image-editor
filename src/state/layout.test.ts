@@ -425,9 +425,43 @@ describe('clearOverlay', () => {
     expect(next.rows[0].items[1].overlayOf).toBeUndefined()
   })
 
+  it('preserves faceIndex when clearing overlay', () => {
+    const layout: Layout = {
+      rows: [
+        {
+          id: 'r1',
+          items: [
+            item('a'),
+            { ...item('over', 'over', 'a'), faceIndex: 1 },
+          ],
+        },
+      ],
+    }
+    const next = clearOverlay(layout, 'over')
+    expect(next.rows[0].items[1].overlayOf).toBeUndefined()
+    expect(next.rows[0].items[1].faceIndex).toBe(1)
+  })
+
   it('leaves items without overlay untouched', () => {
     const layout = buildLayout([{ id: 'r1', items: [item('a')] }])
     const next = clearOverlay(layout, 'a')
     expect(next.rows[0].items[0]).toEqual({ id: 'a', card: layout.rows[0].items[0].card })
+  })
+})
+
+describe('setOverlay overlay-of-overlay rejection', () => {
+  it('rejects making a card an overlay of another overlay', () => {
+    const layout = buildLayout([
+      {
+        id: 'r1',
+        items: [
+          item('base'),
+          { ...item('mid'), overlayOf: 'base' },
+          item('outer'),
+        ],
+      },
+    ])
+    const next = setOverlay(layout, 'outer', 'mid')
+    expect(next).toBe(layout)
   })
 })

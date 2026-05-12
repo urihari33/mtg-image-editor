@@ -119,6 +119,8 @@
 - [ ] **cc:TODO** **[a11y]** TextOutput の `aria-live` を button の中ではなく status 用 `<span>` に分離
 - [ ] **cc:TODO** [perf low] 100 枚規模で useDndContext 由来の re-render が支配的 → OverlayDropZone を React.memo / useDndMonitor 化
 - [ ] **cc:TODO** renderLayout の右下余白 `+overlayOffset` 条件付き化（rightmost/bottommost に overlay がある時のみ）
+- [ ] **cc:TODO** **[a11y]** PrintPickerModal の focus trap / focus restore（モーダル内で Tab がループ、閉じた時にトリガ要素へフォーカス復帰）
+- [ ] **cc:TODO** **[perf]** `fetchAllPrintings` の結果上限（人気カードで `include_multilingual=true` だと 500+ になり DOM が肥大化）
 - [ ] **cc:TODO** 絵柄選択 UI（プリント一覧モーダル、`unique=prints&order=released&dir=asc`）
 - [ ] **cc:TODO** カード詳細表示（クリックで拡大、Oracle テキスト表示）
 - [ ] **cc:TODO** レイアウトの保存/読み込み（localStorage、複数スロット）
