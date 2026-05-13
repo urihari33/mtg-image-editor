@@ -245,7 +245,20 @@ function App() {
       setActiveItem(null)
       setActiveSidebarCard(null)
       const { active, over } = event
-      if (!over) return
+      if (!over) {
+        // Drop outside any droppable: clean up sidebar placeholder that
+        // handleDragOver may have inserted. Otherwise the placeholder lingers
+        // in state, sharing its id with the sidebar's useDraggable — dnd-kit
+        // refuses to activate subsequent drags of the same card.
+        const id = String(active.id)
+        if (id.startsWith('history-')) {
+          setLayout((prev) => {
+            const exists = prev.rows.some((r) => r.items.some((i) => i.id === id))
+            return exists ? pruneEmptyRows(removeItemFromLayout(prev, id)) : prev
+          })
+        }
+        return
+      }
       const activeId = String(active.id)
       const overId = String(over.id)
       const activeType = active.data.current?.type as string | undefined
