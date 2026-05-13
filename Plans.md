@@ -181,3 +181,4 @@
 - **cc:DONE** プロジェクト初期化（Vite + React + TS、ハーネスファイル生成）— 2026-05-11
 - **cc:DONE** Phase 0: 要件詰め（8 項目、決定は `.claude/memory/decisions.md`）— 2026-05-11
 - **cc:DONE** Phase 1 MVP セクション A〜I + J の自動検証部分（テスト 51 / lint / build / dev 起動）— 2026-05-11
+- **cc:DONE** [bug] 履歴ドラッグの id 衝突修正 — 2026-05-13。Sidebar useDraggable id を `history-${oracleId}` → `sidebar-${oracleId}`、placeholder の id は `makeId('placeholder')` で完全一意化し `useRef` で保持。これまで Sidebar 側と layout 内 placeholder が同じ id を共有しており、ドラッグ中 transform が両方に適用される / 残留時に後続ドラッグが不能になる症状を解消（commit 50f471d）
