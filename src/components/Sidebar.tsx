@@ -17,7 +17,11 @@ function DraggableHistoryItem({
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
-      id: `history-${card.oracleId}`,
+      // Sidebar の id は layout 内 placeholder の id と衝突しないよう
+      // `sidebar-` prefix で分離する。同じ prefix を共有すると dnd-kit が
+      // 両者を同一 draggable として扱い、ドラッグ中の transform が両方に
+      // 適用される（履歴を動かすと画面のカードも動く）症状になる。
+      id: `sidebar-${card.oracleId}`,
       data: { type: 'sidebar-card', card },
     })
   const style: React.CSSProperties = {

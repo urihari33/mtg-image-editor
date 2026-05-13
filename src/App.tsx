@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -10,7 +10,6 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import type {
-  DragCancelEvent,
   DragEndEvent,
   DragOverEvent,
   DragStartEvent,
@@ -35,6 +34,7 @@ import {
   finalizePlaceholder,
   findItem,
   flipItem,
+  makeId,
   moveItem,
   pruneEmptyRows,
   removeItemFromLayout,
@@ -60,6 +60,10 @@ function App() {
   const [activeItem, setActiveItem] = useState<LayoutItem | null>(null)
   const [activeSidebarCard, setActiveSidebarCard] = useState<CardEntry | null>(null)
   const [pickerState, setPickerState] = useState<PickerState | null>(null)
+  // Sidebar からのドラッグ中だけ layout 内に挿入される placeholder の id を保持。
+  // Sidebar の useDraggable の id (`sidebar-${oracleId}`) と完全に別空間にする
+  // ことで、ドラッグ中の transform 衝突や残留時の id 衝突を防ぐ。
+  const placeholderIdRef = useRef<string | null>(null)
   const { history, addCard: addToHistory, clear: clearHistory } = useHistory()
   const { preferences, setPreference } = usePreferences()
 
@@ -167,7 +171,8 @@ function App() {
         setActiveSidebarCard(card ?? null)
         setActiveItem(null)
         if (card) {
-          const placeholderId = String(event.active.id)
+          const placeholderId = makeId('placeholder')
+          placeholderIdRef.current = placeholderId
           setLayout((prev) => {
             const lastRow = prev.rows[prev.rows.length - 1]
             if (!lastRow) return prev
@@ -196,7 +201,8 @@ function App() {
     if (activeType !== 'sidebar-card') return
     const card = active.data.current?.card as CardEntry | undefined
     if (!card) return
-    const placeholderId = String(active.id)
+    const placeholderId = placeholderIdRef.current
+    if (!placeholderId) return
     if (!over) return
     const overType = over.data.current?.type as string | undefined
     const overId = String(over.id)
@@ -247,14 +253,15 @@ function App() {
       const { active, over } = event
       if (!over) {
         // Drop outside any droppable: clean up sidebar placeholder that
-        // handleDragOver may have inserted. Otherwise the placeholder lingers
-        // in state, sharing its id with the sidebar's useDraggable — dnd-kit
-        // refuses to activate subsequent drags of the same card.
-        const id = String(active.id)
-        if (id.startsWith('history-')) {
+        // handleDragOver inserted. Otherwise it lingers in state and (now that
+        // its id is unique from sidebar's draggable) at least keeps showing a
+        // ghost card on the canvas.
+        const placeholderId = placeholderIdRef.current
+        placeholderIdRef.current = null
+        if (placeholderId) {
           setLayout((prev) => {
-            const exists = prev.rows.some((r) => r.items.some((i) => i.id === id))
-            return exists ? pruneEmptyRows(removeItemFromLayout(prev, id)) : prev
+            const exists = prev.rows.some((r) => r.items.some((i) => i.id === placeholderId))
+            return exists ? pruneEmptyRows(removeItemFromLayout(prev, placeholderId)) : prev
           })
         }
         return
@@ -266,8 +273,9 @@ function App() {
 
       if (activeType === 'sidebar-card') {
         const card = active.data.current?.card as CardEntry | undefined
-        if (!card) return
-        const placeholderId = String(active.id)
+        const placeholderId = placeholderIdRef.current
+        placeholderIdRef.current = null
+        if (!card || !placeholderId) return
         setLayout((prev) => {
           const placeholderLoc = findItem(prev, placeholderId)
           const stripPlaceholder = placeholderLoc
@@ -357,14 +365,15 @@ function App() {
     [addToHistory],
   )
 
-  const handleDragCancel = useCallback((event: DragCancelEvent) => {
+  const handleDragCancel = useCallback(() => {
     setActiveItem(null)
     setActiveSidebarCard(null)
-    const id = String(event.active.id)
-    if (id.startsWith('history-')) {
+    const placeholderId = placeholderIdRef.current
+    placeholderIdRef.current = null
+    if (placeholderId) {
       setLayout((prev) => {
-        const exists = prev.rows.some((r) => r.items.some((i) => i.id === id))
-        return exists ? pruneEmptyRows(removeItemFromLayout(prev, id)) : prev
+        const exists = prev.rows.some((r) => r.items.some((i) => i.id === placeholderId))
+        return exists ? pruneEmptyRows(removeItemFromLayout(prev, placeholderId)) : prev
       })
     }
   }, [])

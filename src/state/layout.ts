@@ -1,6 +1,6 @@
 import type { CardEntry, Layout, LayoutItem, LayoutRow } from '../types/card'
 
-function makeId(prefix: string): string {
+export function makeId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`
 }
 
