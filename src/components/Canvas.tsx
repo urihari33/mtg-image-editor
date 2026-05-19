@@ -1,4 +1,4 @@
-import type { Ref } from 'react'
+import { useCallback, useLayoutEffect, useRef, type Ref } from 'react'
 import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -176,18 +176,69 @@ type Props = {
   ref?: Ref<HTMLDivElement>
 }
 
+const CANVAS_PADDING_X = 16
+const ROW_PADDING_X = 4
+const CARD_GAP = 12
+const CARD_MAX = 200
+
 export function Canvas({ layout, onRemoveItem, onFlipItem, ref }: Props) {
+  const { active } = useDndContext()
+  const isDragging = active != null
+  const rowGroups = layout.rows.map((row) => groupRowItems(row.items))
   const totalItems = layout.rows.reduce((sum, row) => sum + row.items.length, 0)
   const isEmpty = totalItems === 0
+  const maxRowCount = Math.max(1, ...rowGroups.map((g) => g.length))
+
+  const internalRef = useRef<HTMLDivElement | null>(null)
+  const lastWidthRef = useRef<number>(-1)
+
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      internalRef.current = node
+      if (typeof ref === 'function') {
+        ref(node)
+      } else if (ref) {
+        ;(ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+      }
+    },
+    [ref],
+  )
+
+  useLayoutEffect(() => {
+    if (isDragging) return
+    const el = internalRef.current
+    if (!el) return
+
+    const compute = () => {
+      const canvasContentW = el.clientWidth - CANVAS_PADDING_X * 2
+      const rowContentW = canvasContentW - ROW_PADDING_X * 2
+      const next = Math.max(
+        24,
+        Math.min(
+          CARD_MAX,
+          Math.floor(
+            (rowContentW - (maxRowCount - 1) * CARD_GAP) / maxRowCount,
+          ),
+        ),
+      )
+      if (lastWidthRef.current === next) return
+      lastWidthRef.current = next
+      el.style.setProperty('--card-width', `${next}px`)
+    }
+
+    compute()
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
+  }, [maxRowCount, isDragging])
 
   return (
     <div
-      ref={ref}
+      ref={setRefs}
       className={`canvas${isEmpty ? ' canvas-empty' : ''}`}
       data-testid="canvas"
     >
       {layout.rows.map((row, idx) => {
-        const groups = groupRowItems(row.items)
+        const groups = rowGroups[idx]
         const baseIds = groups.map((g) => g.base.id)
         const rowEmpty = groups.length === 0
         const emptyMsg =
