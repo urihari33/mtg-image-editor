@@ -169,10 +169,16 @@ function NewRowZone() {
   )
 }
 
+type InteractionMode = 'drag' | 'tap'
+
 type Props = {
   layout: Layout
   onRemoveItem?: (itemId: string) => void
   onFlipItem?: (itemId: string) => void
+  interactionMode?: InteractionMode
+  selectedItemId?: string | null
+  onSelectItem?: (itemId: string | null) => void
+  overlaySourceId?: string | null
   ref?: Ref<HTMLDivElement>
 }
 
@@ -181,7 +187,92 @@ const ROW_PADDING_X = 4
 const CARD_GAP = 12
 const CARD_MAX = 200
 
-export function Canvas({ layout, onRemoveItem, onFlipItem, ref }: Props) {
+function MobileBase({
+  group,
+  selected,
+  isOverlaySource,
+  isOverlaySelectMode,
+  onSelectItem,
+}: {
+  group: ItemGroup
+  selected: boolean
+  isOverlaySource: boolean
+  isOverlaySelectMode: boolean
+  onSelectItem?: (itemId: string) => void
+}) {
+  const className = [
+    'sortable-base',
+    'mobile-base',
+    selected ? 'is-selected' : '',
+    isOverlaySource ? 'is-overlay-source' : '',
+    isOverlaySelectMode ? 'is-overlay-target-candidate' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <div className={className} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        className="mobile-card-button"
+        onClick={() => onSelectItem?.(group.base.id)}
+        aria-label={`${group.base.card.displayName} を選択`}
+      >
+        <CardView item={group.base} />
+      </button>
+      {group.overlays.map((ov) => (
+        <div key={ov.id} className="overlay-wrap mobile-overlay-wrap">
+          <button
+            type="button"
+            className="mobile-card-button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelectItem?.(ov.id)
+            }}
+            aria-label={`${ov.card.displayName} を選択`}
+          >
+            <CardView item={ov} />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function MobileRow({
+  rowId,
+  isEmpty,
+  emptyMessage,
+  children,
+}: {
+  rowId: string
+  isEmpty: boolean
+  emptyMessage: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className={`canvas-row mobile-row${isEmpty ? ' is-empty' : ''}`}
+      data-row-id={rowId}
+    >
+      {isEmpty && (
+        <span className="canvas-row-placeholder">{emptyMessage}</span>
+      )}
+      {children}
+    </div>
+  )
+}
+
+export function Canvas({
+  layout,
+  onRemoveItem,
+  onFlipItem,
+  interactionMode = 'drag',
+  selectedItemId = null,
+  onSelectItem,
+  overlaySourceId = null,
+  ref,
+}: Props) {
   const { active } = useDndContext()
   const isDragging = active != null
   const rowGroups = layout.rows.map((row) => groupRowItems(row.items))
@@ -231,10 +322,12 @@ export function Canvas({ layout, onRemoveItem, onFlipItem, ref }: Props) {
     return () => window.removeEventListener('resize', compute)
   }, [maxRowCount, isDragging])
 
+  const isMobile = interactionMode === 'tap'
+
   return (
     <div
       ref={setRefs}
-      className={`canvas${isEmpty ? ' canvas-empty' : ''}`}
+      className={`canvas${isEmpty ? ' canvas-empty' : ''}${isMobile ? ' canvas-mobile' : ''}`}
       data-testid="canvas"
     >
       {layout.rows.map((row, idx) => {
@@ -243,8 +336,39 @@ export function Canvas({ layout, onRemoveItem, onFlipItem, ref }: Props) {
         const rowEmpty = groups.length === 0
         const emptyMsg =
           isEmpty && idx === 0
-            ? '検索ボックスから追加、または履歴をここにドラッグしてください'
+            ? isMobile
+              ? '検索ボックスから追加、または下の履歴シートから配置してください'
+              : '検索ボックスから追加、または履歴をここにドラッグしてください'
             : '（空の行）'
+        if (isMobile) {
+          return (
+            <MobileRow
+              key={row.id}
+              rowId={row.id}
+              isEmpty={rowEmpty}
+              emptyMessage={emptyMsg}
+            >
+              {groups.map((group) => {
+                const baseId = group.base.id
+                const groupItemIds = [baseId, ...group.overlays.map((o) => o.id)]
+                const selected =
+                  selectedItemId !== null && groupItemIds.includes(selectedItemId)
+                const isSource =
+                  overlaySourceId !== null && groupItemIds.includes(overlaySourceId)
+                return (
+                  <MobileBase
+                    key={baseId}
+                    group={group}
+                    selected={selected}
+                    isOverlaySource={isSource}
+                    isOverlaySelectMode={overlaySourceId !== null && !isSource}
+                    onSelectItem={onSelectItem}
+                  />
+                )
+              })}
+            </MobileRow>
+          )
+        }
         return (
           <DroppableRow
             key={row.id}
@@ -264,7 +388,7 @@ export function Canvas({ layout, onRemoveItem, onFlipItem, ref }: Props) {
           </DroppableRow>
         )
       })}
-      <NewRowZone />
+      {!isMobile && <NewRowZone />}
     </div>
   )
 }

@@ -22,13 +22,43 @@ describe('loadPreferences', () => {
       preferAge: 'newest',
       outputAlignment: 'right',
       pickPrintMode: true,
+      uiMode: 'mobile',
     })
     expect(loadPreferences()).toEqual({
       preferLanguage: 'en',
       preferAge: 'newest',
       outputAlignment: 'right',
       pickPrintMode: true,
+      uiMode: 'mobile',
     })
+  })
+
+  it('accepts valid uiMode from storage', () => {
+    localStorage.setItem(
+      PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        preferLanguage: 'ja',
+        preferAge: 'oldest',
+        outputAlignment: 'left',
+        pickPrintMode: false,
+        uiMode: 'desktop',
+      }),
+    )
+    expect(loadPreferences().uiMode).toBe('desktop')
+  })
+
+  it('rejects unknown uiMode and falls back to auto', () => {
+    localStorage.setItem(
+      PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        preferLanguage: 'ja',
+        preferAge: 'oldest',
+        outputAlignment: 'left',
+        pickPrintMode: false,
+        uiMode: 'tablet',
+      }),
+    )
+    expect(loadPreferences().uiMode).toBe('auto')
   })
 
   it('accepts valid outputAlignment from storage', () => {
@@ -86,6 +116,7 @@ describe('clearPreferencesStorage', () => {
       preferAge: 'newest',
       outputAlignment: 'right',
       pickPrintMode: false,
+      uiMode: 'auto',
     })
     expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).not.toBeNull()
     clearPreferencesStorage()

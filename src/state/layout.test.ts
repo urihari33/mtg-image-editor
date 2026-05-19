@@ -10,6 +10,10 @@ import {
   finalizePlaceholder,
   findItem,
   flipItem,
+  moveBaseDown,
+  moveBaseLeft,
+  moveBaseRight,
+  moveBaseUp,
   moveItem,
   pruneEmptyRows,
   removeItemFromLayout,
@@ -463,5 +467,122 @@ describe('setOverlay overlay-of-overlay rejection', () => {
     ])
     const next = setOverlay(layout, 'outer', 'mid')
     expect(next).toBe(layout)
+  })
+})
+
+describe('moveBaseLeft / moveBaseRight', () => {
+  it('左移動: 同行内で1つ前の base と入れ替わる', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), item('b'), item('c')] },
+    ])
+    const next = moveBaseLeft(layout, 'b')
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  it('左移動: 先頭の base は移動しない', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), item('b')] },
+    ])
+    expect(moveBaseLeft(layout, 'a')).toBe(layout)
+  })
+
+  it('右移動: 同行内で1つ後ろの base と入れ替わる（overlay も追従しない）', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), item('b'), item('c')] },
+    ])
+    const next = moveBaseRight(layout, 'b')
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['a', 'c', 'b'])
+  })
+
+  it('右移動: 末尾の base は移動しない', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), item('b')] },
+    ])
+    expect(moveBaseRight(layout, 'b')).toBe(layout)
+  })
+
+  it('overlay カードに対しては no-op', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), { ...item('ov'), overlayOf: 'a' }] },
+    ])
+    expect(moveBaseLeft(layout, 'ov')).toBe(layout)
+    expect(moveBaseRight(layout, 'ov')).toBe(layout)
+  })
+
+  it('右移動: 右隣 base に overlays がある場合はそれらの後ろへ', () => {
+    const layout = buildLayout([
+      {
+        id: 'r1',
+        items: [
+          item('a'),
+          item('b'),
+          { ...item('bov'), overlayOf: 'b' },
+          item('c'),
+        ],
+      },
+    ])
+    const next = moveBaseRight(layout, 'a')
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['b', 'bov', 'a', 'c'])
+  })
+})
+
+describe('moveBaseUp / moveBaseDown', () => {
+  it('下移動: 次の行の先頭へ移動', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), item('b')] },
+      { id: 'r2', items: [item('c')] },
+    ])
+    const next = moveBaseDown(layout, 'b')
+    expect(next.rows.map((r) => r.items.map((i) => i.id))).toEqual([
+      ['a'],
+      ['b', 'c'],
+    ])
+  })
+
+  it('上移動: 前の行の末尾へ移動', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a')] },
+      { id: 'r2', items: [item('b'), item('c')] },
+    ])
+    const next = moveBaseUp(layout, 'c')
+    expect(next.rows.map((r) => r.items.map((i) => i.id))).toEqual([
+      ['a', 'c'],
+      ['b'],
+    ])
+  })
+
+  it('下移動: 最下段の base は新規行を作って移動', () => {
+    const layout = buildLayout([{ id: 'r1', items: [item('a'), item('b')] }])
+    const next = moveBaseDown(layout, 'b')
+    expect(next.rows).toHaveLength(2)
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['a'])
+    expect(next.rows[1].items.map((i) => i.id)).toEqual(['b'])
+  })
+
+  it('上移動: 最上段の base は新規行を作って移動', () => {
+    const layout = buildLayout([{ id: 'r1', items: [item('a'), item('b')] }])
+    const next = moveBaseUp(layout, 'a')
+    expect(next.rows).toHaveLength(2)
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['a'])
+    expect(next.rows[1].items.map((i) => i.id)).toEqual(['b'])
+  })
+
+  it('上下移動で base と overlay が同じ行に揃って動く', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a')] },
+      { id: 'r2', items: [item('b'), { ...item('bov'), overlayOf: 'b' }] },
+    ])
+    const next = moveBaseUp(layout, 'b')
+    expect(next.rows[0].items.map((i) => i.id)).toEqual(['a', 'b', 'bov'])
+    expect(next.rows[0].items[2].overlayOf).toBe('b')
+  })
+
+  it('overlay カードに対しては no-op (上下移動)', () => {
+    const layout = buildLayout([
+      { id: 'r1', items: [item('a'), { ...item('ov'), overlayOf: 'a' }] },
+      { id: 'r2', items: [item('b')] },
+    ])
+    expect(moveBaseDown(layout, 'ov')).toBe(layout)
+    expect(moveBaseUp(layout, 'ov')).toBe(layout)
   })
 })

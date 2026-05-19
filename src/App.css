@@ -20,10 +20,34 @@
   gap: 8px;
 }
 
+.app-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .app-header h1 {
   font-size: 24px;
   margin: 0;
   letter-spacing: 0;
+}
+
+.ui-mode-toggle {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 32px;
+}
+
+.ui-mode-toggle:hover {
+  border-color: var(--accent-border);
 }
 
 .app-error {
@@ -249,10 +273,14 @@
   background: var(--code-bg);
   font-family: var(--mono);
   font-size: 13px;
-  white-space: pre-wrap;
-  word-break: break-word;
+  /* 改行は保持しつつ折り返さない → 横スクロールで全文確認 */
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 12em;
   min-height: 1.5em;
   color: var(--text-h);
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 768px) {
@@ -265,6 +293,465 @@
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
+}
+
+/* === Mobile mode (explicit) === */
+.app[data-ui-mode='mobile'] {
+  grid-template-columns: 1fr;
+  /* 履歴バー (64px) + 余白 */
+  padding-bottom: 72px;
+}
+
+.app[data-ui-mode='mobile'] .app-main {
+  padding: 12px 12px 0;
+  gap: 12px;
+}
+
+.app[data-ui-mode='mobile'] .app-header h1 {
+  font-size: 18px;
+}
+
+.app[data-ui-mode='mobile'] .app-hint {
+  font-size: 11px;
+}
+
+.app[data-ui-mode='mobile'] .preference-toggles .preference-toggle {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+.app[data-ui-mode='mobile'] .preference-toggles.is-collapsed {
+  display: none;
+}
+
+.header-settings-toggle {
+  font: inherit;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  align-self: flex-start;
+  min-height: 36px;
+}
+
+.header-settings-toggle:active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.app[data-ui-mode='mobile'] .image-export-buttons button {
+  min-height: 44px;
+  font-size: 14px;
+}
+
+.app[data-ui-mode='mobile'] .image-export-alignment button {
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.app[data-ui-mode='mobile'] .text-output-header button {
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+/* モバイルではホバー表示の × / ↻ を完全に隠す（アクションパネルで処理） */
+.app[data-ui-mode='mobile'] .card-remove,
+.app[data-ui-mode='mobile'] .card-flip {
+  display: none;
+}
+
+/* === PrintPickerModal mobile responsive === */
+@media (max-width: 600px) {
+  .print-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    padding: 12px;
+    gap: 8px;
+  }
+  .print-picker-close {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+  .print-picker-header h2 {
+    font-size: 14px;
+  }
+}
+
+/* === History Bar (mobile, 横スクロール) === */
+.history-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  z-index: 30;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.history-bar-label {
+  font-size: 11px;
+  color: var(--text);
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.history-bar-empty {
+  font-size: 11px;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+}
+
+.history-bar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  align-items: center;
+  scrollbar-width: thin;
+  /* iOS の慣性スクロール */
+  -webkit-overflow-scrolling: touch;
+}
+
+.history-bar-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.history-bar-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.history-bar-list li {
+  flex-shrink: 0;
+}
+
+.history-bar-item {
+  display: block;
+  padding: 0;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.history-bar-item:active {
+  border-color: var(--accent-border);
+}
+
+.history-bar-item img {
+  width: auto;
+  height: 52px;
+  aspect-ratio: 488 / 680;
+  border-radius: 3px;
+  background: var(--code-bg);
+  object-fit: cover;
+  display: block;
+}
+
+.history-bar-clear {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: none;
+  border-radius: 50%;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.history-bar-clear:active {
+  background: rgba(192, 57, 43, 0.1);
+  border-color: rgba(192, 57, 43, 0.5);
+  color: #c0392b;
+}
+
+.history-bar-clear:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* === Mobile canvas (tap mode) === */
+.canvas.canvas-mobile {
+  border: 1px dashed var(--border);
+}
+
+.canvas-mobile .canvas-row.mobile-row {
+  min-height: 0;
+}
+
+.mobile-card-button {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+}
+
+.mobile-card-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mobile-base.sortable-base {
+  border-radius: 12px;
+  transition: outline-color 0.15s;
+  outline: 3px solid transparent;
+  outline-offset: 3px;
+}
+
+.mobile-base.is-selected {
+  outline-color: var(--accent);
+}
+
+.mobile-base.is-overlay-source {
+  outline-color: #f39c12;
+  animation: overlay-source-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes overlay-source-pulse {
+  0%,
+  100% {
+    outline-color: #f39c12;
+  }
+  50% {
+    outline-color: #f9b94e;
+  }
+}
+
+.mobile-base.is-overlay-target-candidate {
+  outline-color: rgba(243, 156, 18, 0.4);
+  outline-style: dashed;
+}
+
+/* モバイルでオーバーレイ wrap も tap 可能ボタン用にする */
+.mobile-overlay-wrap {
+  cursor: pointer;
+}
+
+/* === Card Action Panel === */
+.card-action-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 45;
+  animation: bottom-sheet-fade 0.15s ease-out;
+}
+
+.card-action-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 12px 16px 16px;
+  z-index: 50;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: bottom-sheet-slide 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.card-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-action-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.card-action-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: normal;
+  border-radius: 8px;
+  background: rgba(243, 156, 18, 0.18);
+  color: #d4880a;
+}
+
+.card-action-close {
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.card-action-close:active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.card-action-body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.card-action-body.is-overlay {
+  grid-template-columns: 1fr;
+}
+
+.card-action-move {
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 48px);
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.card-action-arrow {
+  font: inherit;
+  font-size: 22px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-action-arrow-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.card-action-arrow-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.card-action-arrow-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.card-action-arrow-down {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.card-action-arrow:active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.card-action-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.card-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.card-action-button {
+  font: inherit;
+  font-size: 14px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+  cursor: pointer;
+  text-align: left;
+}
+
+.card-action-button:active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.card-action-button.is-danger {
+  border-color: rgba(192, 57, 43, 0.5);
+  background: rgba(192, 57, 43, 0.1);
+  color: #c0392b;
+}
+
+.card-action-button.is-danger:active {
+  background: #c0392b;
+  color: #fff;
+}
+
+/* === Overlay select mode banner === */
+.overlay-select-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 60px;
+  transform: translateX(-50%);
+  background: #f39c12;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 22px;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(243, 156, 18, 0.4);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+}
+
+.overlay-select-banner button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.overlay-select-banner button:active {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .search-box {

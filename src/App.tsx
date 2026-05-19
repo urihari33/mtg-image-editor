@@ -17,7 +17,9 @@ import type {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Canvas } from './components/Canvas'
 import { CardView } from './components/CardView'
+import { CardActionPanel } from './components/CardActionPanel'
 import { Footer } from './components/Footer'
+import { HistoryBottomSheet } from './components/HistoryBottomSheet'
 import { ImageExport } from './components/ImageExport'
 import { PrintPickerModal } from './components/PrintPickerModal'
 import { SearchBox } from './components/SearchBox'
@@ -35,6 +37,10 @@ import {
   findItem,
   flipItem,
   makeId,
+  moveBaseDown,
+  moveBaseLeft,
+  moveBaseRight,
+  moveBaseUp,
   moveItem,
   pruneEmptyRows,
   removeItemFromLayout,
@@ -43,6 +49,7 @@ import {
 } from './state/layout'
 import { useHistory } from './state/useHistory'
 import { usePreferences } from './state/usePreferences'
+import { useEffectiveUiMode } from './state/useUiMode'
 import type { CardEntry, LayoutItem } from './types/card'
 import './App.css'
 
@@ -66,6 +73,13 @@ function App() {
   const placeholderIdRef = useRef<string | null>(null)
   const { history, addCard: addToHistory, clear: clearHistory } = useHistory()
   const { preferences, setPreference } = usePreferences()
+  const uiMode = useEffectiveUiMode(preferences.uiMode)
+  const isMobile = uiMode === 'mobile'
+
+  // Mobile tap-mode: 選択中カード id とオーバーレイ先選択モード
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [overlaySourceId, setOverlaySourceId] = useState<string | null>(null)
+  const [headerSettingsOpen, setHeaderSettingsOpen] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -161,6 +175,88 @@ function App() {
 
   const handleClearAll = useCallback(() => {
     setLayout(createInitialLayout())
+    setSelectedItemId(null)
+    setOverlaySourceId(null)
+  }, [])
+
+  // === Mobile tap-mode handlers ===
+  const handleSelectItem = useCallback(
+    (itemId: string | null) => {
+      // 重ねるモード中はタップ = 重ね先決定
+      if (overlaySourceId !== null && itemId !== null) {
+        if (itemId === overlaySourceId) {
+          // 自分自身を選んだ場合はキャンセル扱い
+          setOverlaySourceId(null)
+          return
+        }
+        // overlay サブカードがタップされた場合は、その base にリダイレクトする
+        // （setOverlay は base が overlay の時点で reject されるため、無音の no-op になる）
+        let target = itemId
+        setLayout((prev) => {
+          const located = findItem(prev, itemId)
+          if (located && located.item.overlayOf !== undefined) {
+            target = located.item.overlayOf
+          }
+          if (target === overlaySourceId) return prev
+          return setOverlay(prev, overlaySourceId, target)
+        })
+        setOverlaySourceId(null)
+        setSelectedItemId(null)
+        return
+      }
+      setSelectedItemId(itemId)
+    },
+    [overlaySourceId],
+  )
+
+  const handlePanelClose = useCallback(() => {
+    setSelectedItemId(null)
+  }, [])
+
+  const handlePanelMoveLeft = useCallback(() => {
+    if (!selectedItemId) return
+    setLayout((prev) => moveBaseLeft(prev, selectedItemId))
+  }, [selectedItemId])
+
+  const handlePanelMoveRight = useCallback(() => {
+    if (!selectedItemId) return
+    setLayout((prev) => moveBaseRight(prev, selectedItemId))
+  }, [selectedItemId])
+
+  const handlePanelMoveUp = useCallback(() => {
+    if (!selectedItemId) return
+    setLayout((prev) => moveBaseUp(prev, selectedItemId))
+  }, [selectedItemId])
+
+  const handlePanelMoveDown = useCallback(() => {
+    if (!selectedItemId) return
+    setLayout((prev) => moveBaseDown(prev, selectedItemId))
+  }, [selectedItemId])
+
+  const handlePanelFlip = useCallback(() => {
+    if (!selectedItemId) return
+    setLayout((prev) => flipItem(prev, selectedItemId))
+  }, [selectedItemId])
+
+  const handlePanelDelete = useCallback(() => {
+    if (!selectedItemId) return
+    setLayout((prev) => pruneEmptyRows(removeItemFromLayout(prev, selectedItemId)))
+    setSelectedItemId(null)
+  }, [selectedItemId])
+
+  const handlePanelStartOverlay = useCallback(() => {
+    if (!selectedItemId) return
+    setOverlaySourceId(selectedItemId)
+    setSelectedItemId(null)
+  }, [selectedItemId])
+
+  const handlePanelClearOverlay = useCallback(() => {
+    if (!selectedItemId) return
+    setLayout((prev) => clearOverlay(prev, selectedItemId))
+  }, [selectedItemId])
+
+  const handleCancelOverlay = useCallback(() => {
+    setOverlaySourceId(null)
   }, [])
 
   const handleDragStart = useCallback(
@@ -389,13 +485,60 @@ function App() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="app">
-        <Sidebar history={history} onPickCard={addCard} onClear={clearHistory} />
+      <div className="app" data-ui-mode={uiMode}>
+        {isMobile ? (
+          <HistoryBottomSheet
+            history={history}
+            onPickCard={addCard}
+            onClear={clearHistory}
+          />
+        ) : (
+          <Sidebar history={history} onPickCard={addCard} onClear={clearHistory} />
+        )}
         <div className="app-main">
           <header className="app-header">
-            <h1>MTG Image Editor</h1>
+            <div className="app-header-top">
+              <h1>MTG Image Editor</h1>
+              <button
+                type="button"
+                className="ui-mode-toggle"
+                onClick={() => {
+                  const next =
+                    preferences.uiMode === 'auto'
+                      ? 'mobile'
+                      : preferences.uiMode === 'mobile'
+                        ? 'desktop'
+                        : 'auto'
+                  setPreference('uiMode', next)
+                }}
+                title={`UI モード: ${preferences.uiMode}（クリックで切替）`}
+                aria-label={`UI モード切替（現在: ${preferences.uiMode}）`}
+              >
+                {preferences.uiMode === 'auto'
+                  ? `🔄 自動 (${uiMode === 'mobile' ? '📱' : '🖥️'})`
+                  : preferences.uiMode === 'mobile'
+                    ? '📱 モバイル'
+                    : '🖥️ デスクトップ'}
+              </button>
+            </div>
             <SearchBox onPickSuggestion={handlePickSuggestion} disabled={isAdding} />
-            <div className="preference-toggles" role="group" aria-label="検索オプション">
+            {isMobile && (
+              <button
+                type="button"
+                className="header-settings-toggle"
+                onClick={() => setHeaderSettingsOpen((v) => !v)}
+                aria-expanded={headerSettingsOpen}
+                aria-controls="preference-toggles"
+              >
+                ⚙️ 検索オプション {headerSettingsOpen ? '▲' : '▼'}
+              </button>
+            )}
+            <div
+              id="preference-toggles"
+              className={`preference-toggles${isMobile && !headerSettingsOpen ? ' is-collapsed' : ''}`}
+              role="group"
+              aria-label="検索オプション"
+            >
               <button
                 type="button"
                 className="preference-toggle"
@@ -443,7 +586,9 @@ function App() {
               </button>
             </div>
             <p className="app-hint">
-              Tip: カードをドラッグで並び替え。右下の 🔗 ゾーンへドロップで重ね合わせ（60% 右下揃え）。サイドバーの履歴もドラッグで配置できます。
+              {isMobile
+                ? 'Tip: カードをタップでメニューを開き、移動 / 重ね / 裏返し / 削除を選びます。履歴は画面下のシートから配置。'
+                : 'Tip: カードをドラッグで並び替え。右下の 🔗 ゾーンへドロップで重ね合わせ（60% 右下揃え）。サイドバーの履歴もドラッグで配置できます。'}
             </p>
             {error && (
               <p className="app-error" role="alert">
@@ -455,6 +600,10 @@ function App() {
             layout={layout}
             onRemoveItem={handleRemoveItem}
             onFlipItem={handleFlipItem}
+            interactionMode={isMobile ? 'tap' : 'drag'}
+            selectedItemId={selectedItemId}
+            onSelectItem={handleSelectItem}
+            overlaySourceId={overlaySourceId}
           />
           <ImageExport
             layout={layout}
@@ -476,6 +625,33 @@ function App() {
           onPick={handlePickFromModal}
           onClose={handleClosePicker}
         />
+      )}
+      {isMobile && selectedItemId && (
+        <CardActionPanel
+          layout={layout}
+          selectedItemId={selectedItemId}
+          onMoveLeft={handlePanelMoveLeft}
+          onMoveRight={handlePanelMoveRight}
+          onMoveUp={handlePanelMoveUp}
+          onMoveDown={handlePanelMoveDown}
+          onFlip={handlePanelFlip}
+          onDelete={handlePanelDelete}
+          onStartOverlay={handlePanelStartOverlay}
+          onClearOverlay={handlePanelClearOverlay}
+          onClose={handlePanelClose}
+        />
+      )}
+      {isMobile && overlaySourceId && (
+        <div className="overlay-select-banner" role="status" aria-live="polite">
+          <span>🔗 重ねる先のカードをタップしてください</span>
+          <button
+            type="button"
+            onClick={handleCancelOverlay}
+            aria-label="重ねるをキャンセル"
+          >
+            キャンセル
+          </button>
+        </div>
       )}
       <DragOverlay>
         <DragPreview activeItem={activeItem} activeSidebarCard={activeSidebarCard} />

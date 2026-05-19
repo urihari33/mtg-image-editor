@@ -304,3 +304,136 @@ export function clearOverlay(layout: Layout, itemId: string): Layout {
     })),
   }
 }
+
+// === 十字移動（モバイル UI 用） ===
+// base カードのみ対象。overlay カード（overlayOf あり）は no-op。
+// base カードの id を渡すと、その group（base + overlays）ごと移動する想定だが、
+// groupRowItems が overlay を base の直後に紐付けて表示しているため、
+// items 配列上の base 要素だけ動かせば十分（overlay 要素は同じ row 内に残り、
+// groupRowItems が再構築時に拾い直す）。
+//
+// ただし行をまたぐ移動の場合、overlay 要素は元の row に取り残されると base から
+// 切り離されてしまう（groupRowItems が base を見つけられない）。
+// そのため上下移動では base に紐づく overlay も同行へ連れて行く。
+
+function rowOf(layout: Layout, itemId: string): { rowIdx: number; itemIdx: number } | null {
+  for (let r = 0; r < layout.rows.length; r += 1) {
+    const i = layout.rows[r].items.findIndex((it) => it.id === itemId)
+    if (i >= 0) return { rowIdx: r, itemIdx: i }
+  }
+  return null
+}
+
+function isBaseAt(items: LayoutItem[], itemIdx: number): boolean {
+  return items[itemIdx]?.overlayOf === undefined
+}
+
+function basePositionsInRow(items: LayoutItem[]): number[] {
+  const positions: number[] = []
+  items.forEach((it, idx) => {
+    if (it.overlayOf === undefined) positions.push(idx)
+  })
+  return positions
+}
+
+export function moveBaseLeft(layout: Layout, itemId: string): Layout {
+  const loc = rowOf(layout, itemId)
+  if (!loc) return layout
+  const row = layout.rows[loc.rowIdx]
+  if (!isBaseAt(row.items, loc.itemIdx)) return layout
+  const bases = basePositionsInRow(row.items)
+  const baseOrder = bases.indexOf(loc.itemIdx)
+  if (baseOrder <= 0) return layout
+  // 左隣 base の位置に挿入（既存 moveItem の targetIndex は base 単位ではなく
+  // items 配列の生 index を期待するため、左隣 base の生 index へ）。
+  const leftBaseRawIdx = bases[baseOrder - 1]
+  return moveItem(layout, itemId, row.id, leftBaseRawIdx)
+}
+
+export function moveBaseRight(layout: Layout, itemId: string): Layout {
+  const loc = rowOf(layout, itemId)
+  if (!loc) return layout
+  const row = layout.rows[loc.rowIdx]
+  if (!isBaseAt(row.items, loc.itemIdx)) return layout
+  const bases = basePositionsInRow(row.items)
+  const baseOrder = bases.indexOf(loc.itemIdx)
+  if (baseOrder < 0 || baseOrder >= bases.length - 1) return layout
+  // 右隣 base の overlays の末尾の次の位置に入れたいが、moveItem は同一行で
+  // targetIndex を超過しても clamp してくれる。右隣 base + その overlays 個数分先へ。
+  const rightBaseRawIdx = bases[baseOrder + 1]
+  const rightBaseOverlayCount = (() => {
+    const baseId = row.items[rightBaseRawIdx].id
+    let count = 0
+    for (let i = rightBaseRawIdx + 1; i < row.items.length; i += 1) {
+      if (row.items[i].overlayOf === baseId) count += 1
+      else break
+    }
+    return count
+  })()
+  const targetIdx = rightBaseRawIdx + rightBaseOverlayCount
+  return moveItem(layout, itemId, row.id, targetIdx)
+}
+
+function moveItemAndOverlays(
+  layout: Layout,
+  baseId: string,
+  targetRowId: string,
+  targetIndex: number,
+): Layout {
+  const loc = rowOf(layout, baseId)
+  if (!loc) return layout
+  const fromRow = layout.rows[loc.rowIdx]
+  // base + その直後の連続する overlay 群を抽出
+  const overlayIds: string[] = []
+  for (let i = loc.itemIdx + 1; i < fromRow.items.length; i += 1) {
+    if (fromRow.items[i].overlayOf === baseId) overlayIds.push(fromRow.items[i].id)
+    else break
+  }
+  // 同一行への移動なら moveItem 1 回でほぼ済むが、行をまたぐ場合は base を先に移動し、
+  // overlay は base 直後に順次差し込む。
+  let next = moveItem(layout, baseId, targetRowId, targetIndex)
+  // base の新しい位置を取得
+  const newLoc = rowOf(next, baseId)
+  if (!newLoc) return next
+  let insertAt = newLoc.itemIdx + 1
+  for (const ovId of overlayIds) {
+    next = moveItem(next, ovId, targetRowId, insertAt)
+    insertAt += 1
+  }
+  return next
+}
+
+export function moveBaseUp(layout: Layout, itemId: string): Layout {
+  const loc = rowOf(layout, itemId)
+  if (!loc) return layout
+  const row = layout.rows[loc.rowIdx]
+  if (!isBaseAt(row.items, loc.itemIdx)) return layout
+  if (loc.rowIdx === 0) {
+    // 最上段の場合は上に新規行を作って移動
+    const newRowId = makeId('row')
+    const withNewTop: Layout = {
+      rows: [{ id: newRowId, items: [] }, ...layout.rows],
+    }
+    return pruneEmptyRows(moveItemAndOverlays(withNewTop, itemId, newRowId, 0))
+  }
+  const targetRow = layout.rows[loc.rowIdx - 1]
+  // 上の行の末尾へ
+  const targetIndex = targetRow.items.length
+  return pruneEmptyRows(moveItemAndOverlays(layout, itemId, targetRow.id, targetIndex))
+}
+
+export function moveBaseDown(layout: Layout, itemId: string): Layout {
+  const loc = rowOf(layout, itemId)
+  if (!loc) return layout
+  const row = layout.rows[loc.rowIdx]
+  if (!isBaseAt(row.items, loc.itemIdx)) return layout
+  if (loc.rowIdx === layout.rows.length - 1) {
+    const newRowId = makeId('row')
+    const withNewBottom: Layout = {
+      rows: [...layout.rows, { id: newRowId, items: [] }],
+    }
+    return pruneEmptyRows(moveItemAndOverlays(withNewBottom, itemId, newRowId, 0))
+  }
+  const targetRow = layout.rows[loc.rowIdx + 1]
+  return pruneEmptyRows(moveItemAndOverlays(layout, itemId, targetRow.id, 0))
+}
